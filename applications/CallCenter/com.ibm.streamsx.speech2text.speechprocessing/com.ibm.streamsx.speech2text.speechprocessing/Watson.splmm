@@ -31,10 +31,23 @@ use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streams.speech2text.watson::*; 
 
 
-type bestUtterance = tuple<rstring id, rstring channel_id, float64 utteranceStartTime, float64 utteranceEndTime,  uint32 captureSeconds,  int32 utteranceNumber, rstring utterance> ;
+type bestUtterance = tuple<rstring id, rstring channel_id
+	, float64 utteranceStartTime, float64 utteranceEndTime
+	,  uint32 captureSeconds,  int32 utteranceNumber
+	, rstring utterance, float64 utteranceConfidence
+	, list<float64> utteranceTokenConfidences> ;
 
-type  Utterance       = tuple<rstring callId, int32 utteranceNumber,  float64 utteranceStartTime, float64 utteranceEndTime,  uint32 captureSeconds,  rstring role, rstring utterance, int32 speakerId, rstring callCenter>;
-type  Utterance_File  = tuple<rstring ipaddress, rstring startingTime, rstring callCenter, int32 utteranceNumber,  float64 utteranceStartTime, float64 utteranceEndTime, uint32 captureSeconds,  rstring role, rstring utterance, int32 speakerId>;
+type  Utterance       = tuple<rstring callId, int32 utteranceNumber
+	,  float64 utteranceStartTime, float64 utteranceEndTime
+	,  uint32 captureSeconds,  rstring role
+	, rstring utterance, int32 speakerId
+	, rstring callCenter,  float64 utteranceConfidence
+	, list<float64> utteranceTokenConfidences>;
+type  Utterance_File  = tuple<rstring ipaddress, rstring startingTime
+	, rstring callCenter, int32 utteranceNumber
+	,  float64 utteranceStartTime, float64 utteranceEndTime
+	, uint32 captureSeconds,  rstring role
+	, rstring utterance, int32 speakerId>;
 
 
 composite Watson
@@ -136,7 +149,7 @@ composite Watson
                            list<rstring> tokens = tokenize(id,"_",true);
 
                          // mutable rstring tempUtterance = utterance;
-                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id, callCenter = $callCenter }  , Utterance_Data<%=$jobNumber%>  ); 
+                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id, callCenter = $callCenter, utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences }  , Utterance_Data<%=$jobNumber%>  ); 
                         submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
                         	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File<%=$jobNumber%>  ); 
 
@@ -161,7 +174,7 @@ composite Watson
                                 format : csv ;
                                 closeMode : time;
                                 timePerFile : 86000.0f;
-                                flush : 1u;
+                                flush : 10u;
 
                 } 
  
@@ -172,7 +185,7 @@ composite Watson
                                format : csv ;
                                closeMode : time;
                                timePerFile : 86000.0f;
-                               flush : 1u;
+                               flush : 10u;
                 }   
 
 
@@ -200,9 +213,11 @@ composite SpeechToText(input inp ; output Utterances, Debug)
 			           output 
 			           		Utterances :     
 			           					 utteranceStartTime = getUtteranceStartTime(),  
-                                         utteranceEndTime   = getUtteranceEndTime(),
+                                                                         utteranceEndTime   = getUtteranceEndTime(),
 			           					 utteranceNumber = getUtteranceNumber(),
-			           					 utterance = getUtteranceText();
+			           					 utterance = getUtteranceText(),
+			           					 utteranceConfidence = getUtteranceConfidence(),
+			           					 utteranceTokenConfidences = getUtteranceWordConfidences();
 			           		Debug : 
 			           				log = getDiagnosticsMessage(); 
 		                config

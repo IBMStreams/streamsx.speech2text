@@ -21,10 +21,23 @@ use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streams.speech2text.watson::*; 
 
 
-type bestUtterance = tuple<rstring id, rstring channel_id, float64 utteranceStartTime, float64 utteranceEndTime,  uint32 captureSeconds,  int32 utteranceNumber, rstring utterance> ;
+type bestUtterance = tuple<rstring id, rstring channel_id
+	, float64 utteranceStartTime, float64 utteranceEndTime
+	,  uint32 captureSeconds,  int32 utteranceNumber
+	, rstring utterance, float64 utteranceConfidence
+	, list<float64> utteranceTokenConfidences> ;
 
-type  Utterance       = tuple<rstring callId, int32 utteranceNumber,  float64 utteranceStartTime, float64 utteranceEndTime,  uint32 captureSeconds,  rstring role, rstring utterance, int32 speakerId, rstring callCenter>;
-type  Utterance_File  = tuple<rstring ipaddress, rstring startingTime, rstring callCenter, int32 utteranceNumber,  float64 utteranceStartTime, float64 utteranceEndTime, uint32 captureSeconds,  rstring role, rstring utterance, int32 speakerId>;
+type  Utterance       = tuple<rstring callId, int32 utteranceNumber
+	,  float64 utteranceStartTime, float64 utteranceEndTime
+	,  uint32 captureSeconds,  rstring role
+	, rstring utterance, int32 speakerId
+	, rstring callCenter,  float64 utteranceConfidence
+	, list<float64> utteranceTokenConfidences>;
+type  Utterance_File  = tuple<rstring ipaddress, rstring startingTime
+	, rstring callCenter, int32 utteranceNumber
+	,  float64 utteranceStartTime, float64 utteranceEndTime
+	, uint32 captureSeconds,  rstring role
+	, rstring utterance, int32 speakerId>;
 
 
 composite Watson
@@ -79,22 +92,22 @@ composite Watson
 
              
 
-             stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,   blob speech, int32 samples, int32 jobId, uint32 hostId> Imported_Utterances1 = Import() {
+             stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,   blob speech, int32 samples, int32 jobId, uint32 hostId> Imported_Utterances5 = Import() {
               param
                   applicationName : "com.ibm.streamsx.speech2text.speechprocessing.setup::Main";
-                  streamId : "Import_Utterances1" ;
+                  streamId : "Import_Utterances5" ;
            }
 
 
-             stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,  blob speech, int32 samples, int32 jobId, uint32 hostId> Imported2_Utterances1 = Functor(Imported_Utterances1) {
+             stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,  blob speech, int32 samples, int32 jobId, uint32 hostId> Imported2_Utterances5 = Functor(Imported_Utterances5) {
            }
 
 
-                @parallel(width = 50  , partitionBy = [ { port = Imported2_Utterances1,  attributes = [jobId] } ])
+                @parallel(width = 3  , partitionBy = [ { port = Imported2_Utterances5,  attributes = [jobId] } ])
                 (
-                   stream<bestUtterance> Utterances1;
-                   stream<rstring log> Diagnostics1
-                 ) = SpeechToText(Imported2_Utterances1)
+                   stream<bestUtterance> Utterances5;
+                   stream<rstring log> Diagnostics5
+                 ) = SpeechToText(Imported2_Utterances5)
                 {  
                    param 
                             paramsetFile : $paramsetFile;
@@ -103,7 +116,7 @@ composite Watson
 
 /*
 
-                stream<bestUtterance> Filtered_Utterances1  = Filter(Utterances1)
+                stream<bestUtterance> Filtered_Utterances5  = Filter(Utterances5)
                 {
                       param filter : ( channel_id == "0" | channel_id == "1" ) ;
 
@@ -113,19 +126,19 @@ composite Watson
 
  
                (
-                stream<Utterance> Utterance_Data1 ;
-                stream<Utterance_File> Utterance_File1 )
-                  = Custom(Utterances1)
+                stream<Utterance> Utterance_Data5 ;
+                stream<Utterance_File> Utterance_File5 )
+                  = Custom(Utterances5)
                 { 
                    logic
-                       onTuple Utterances1 :
+                       onTuple Utterances5 :
                       { 
                            list<rstring> tokens = tokenize(id,"_",true);
 
                          // mutable rstring tempUtterance = utterance;
-                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id, callCenter = $callCenter }  , Utterance_Data1  ); 
+                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id, callCenter = $callCenter, utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences }  , Utterance_Data5  ); 
                         submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
-                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File1  ); 
+                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File5  ); 
 
 
                       }
@@ -134,37 +147,37 @@ composite Watson
 
                // jmsjms : This export needs to eventually go away and be replaced with a messging system 
 
-		() as ExportFileOutput1 = Export(Utterance_Data1)
+		() as ExportFileOutput5 = Export(Utterance_Data5)
                 {
                         param
-                      streamId  : "Utterance_Data1";
+                      streamId  : "Utterance_Data5";
                 }
              
 
-                () as FileOutput1  = FileSink(Utterance_File1 )
+                () as FileOutput5  = FileSink(Utterance_File5 )
                 {
                         param
-                                file: $utterances + "outUtterances1_{localtime:%m%d%y}_{id}.csv";
+                                file: $utterances + "outUtterances5_{localtime:%m%d%y}_{id}.csv";
                                 format : csv ;
                                 closeMode : time;
                                 timePerFile : 86000.0f;
-                                flush : 1u;
+                                flush : 10u;
 
                 } 
  
-		() as FileDiagnostics1  = FileSink(Diagnostics1 )
+		() as FileDiagnostics5  = FileSink(Diagnostics5 )
                 {
                         param 
-                               file:   $diagnostics + "Diagnostics1_{localtime:%m%d%y}_{id}.csv";
+                               file:   $diagnostics + "Diagnostics5_{localtime:%m%d%y}_{id}.csv";
                                format : csv ;
                                closeMode : time;
                                timePerFile : 86000.0f;
-                               flush : 1u;
+                               flush : 10u;
                 }   
 
 
            config
-            hostPool : P1=createPool({size=1u, tags=["setup"]},Sys.Shared);
+            hostPool : P1=createPool({size=1u, tags=["watson5"]},Sys.Shared);
             placement  : host(P1);
 }  
 
@@ -187,9 +200,11 @@ composite SpeechToText(input inp ; output Utterances, Debug)
 			           output 
 			           		Utterances :     
 			           					 utteranceStartTime = getUtteranceStartTime(),  
-                                         utteranceEndTime   = getUtteranceEndTime(),
+                                                                         utteranceEndTime   = getUtteranceEndTime(),
 			           					 utteranceNumber = getUtteranceNumber(),
-			           					 utterance = getUtteranceText();
+			           					 utterance = getUtteranceText(),
+			           					 utteranceConfidence = getUtteranceConfidence(),
+			           					 utteranceTokenConfidences = getUtteranceWordConfidences();
 			           		Debug : 
 			           				log = getDiagnosticsMessage(); 
 		                config
