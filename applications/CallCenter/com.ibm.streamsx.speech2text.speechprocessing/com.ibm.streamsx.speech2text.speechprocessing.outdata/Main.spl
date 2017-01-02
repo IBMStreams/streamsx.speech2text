@@ -30,12 +30,14 @@ composite Main
 	    Utterance			=	tuple<rstring callId, 
 		    						int32 utteranceNumber,
 		    						float64 utteranceStartTime,  
-                                                                float64 utteranceEndTime,
-                                                                        uint32 captureSeconds, 
-                                                                        rstring role,
+                                    float64 utteranceEndTime,
+                                    uint32 captureSeconds, 
+                                    rstring role,
 		   							rstring utterance,
 		   							int32 speakerId,
-                                                                         rstring callCenter>;
+                                    rstring callCenter,
+                                    float64 utteranceConfidence,
+                                    list<float64>  utteranceTokenConfidences>;
 	   	
 			
 	graph
@@ -87,7 +89,14 @@ composite Main
                       }
                  }
 
-
+	() as TestSink = FileSink(Import_Utterances){
+            param
+                    file: "/home/streamsadmin/data/test.dat";
+                    format : csv ;
+                    closeMode : time;
+                    timePerFile : 86000.0f;
+                    flush : 10u;
+	}
 
    () as TcpSink_Import_UtterancesStream = TCPSink(Import_Utterances)
     {
@@ -103,7 +112,7 @@ composite Main
     }
 
 config
-            hostPool : P1=createPool({size=1u, tags=["setup"]},Sys.Shared);
+            hostPool : P1=createPool({size=1u, tags=["watson5"]},Sys.Shared);
             placement  : host(P1); 
             restartable : false;
 
