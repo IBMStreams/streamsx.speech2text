@@ -1,0 +1,120 @@
+/*******************************************************************************
+ * Copyright (C) 2016, International Business Machines Corporation
+ * All Rights Reserved
+ *******************************************************************************/
+<% # Switch to Perl scripting mode
+
+        use integer;
+        use Cwd;
+        use Env qw(WORKSPACE_ROOT);
+
+        print "// Perl Arguments in effect for mixed-mode processing\n";
+        my $argCnt = @ARGV;
+        print "// Argument count: ", $argCnt, "\n";
+        my $argIdx;
+        for ($argIdx = 0; $argIdx < $argCnt; $argIdx++) {
+                print "// \$ARGV\[", $argIdx, "\]\:", $ARGV[$argIdx], "\n";
+        }
+
+
+        my $ssystem   = $ENV{'jobHost'};
+
+%>
+
+
+ 
+
+namespace com.ibm.streamsx.speech2text.speechprocessing.outdata ;
+
+
+composite Main
+{	 
+    param  
+        expression<rstring> $connHost    : getSubmissionTimeValue("connHost");
+        expression<uint32> $connPort     : (uint32) getSubmissionTimeValue("connPort");
+
+
+	type 
+		
+	    Utterance			=	tuple<rstring callId, 
+		    						int32 utteranceNumber,
+		    						float64 utteranceStartTime,  
+                                                                float64 utteranceEndTime,
+                                                                        uint32 captureSeconds, 
+                                                                        rstring role,
+		   							rstring utterance,
+		   							int32 speakerId,
+                                                                         rstring callCenter>;
+	   	
+			
+	graph
+				
+		/**
+		 * Operators ReadFile and RealtimeEmulator are used to emulate
+		 * real-time analysis of calls by reading preliminary prepared
+		 * data a from text file
+		 */
+		
+
+           stream<Utterance> Import_Utterances_1 = Import() { 
+              param 
+                  applicationName : "com.ibm.streamsx.speech2text.speechprocessing::Watson"; 
+                  streamId : "Utterance_Data1";
+           }   
+
+
+           stream<Utterance> Import_Utterances_3 = Import() { 
+              param 
+                  applicationName : "com.ibm.streamsx.speech2text.speechprocessing::Watson"; 
+                  streamId : "Utterance_Data3";
+           }   
+
+           stream<Utterance> Import_Utterances_2 = Import() { 
+              param 
+                  applicationName : "com.ibm.streamsx.speech2text.speechprocessing::Watson"; 
+                  streamId : "Utterance_Data2";
+           }   
+
+           stream<Utterance> Import_Utterances_4 = Import() { 
+              param 
+                  applicationName : "com.ibm.streamsx.speech2text.speechprocessing::Watson"; 
+                  streamId : "Utterance_Data4";
+           }   
+
+           stream<Utterance> Import_Utterances_5 = Import() { 
+              param 
+                  applicationName : "com.ibm.streamsx.speech2text.speechprocessing::Watson"; 
+                  streamId : "Utterance_Data5";
+           }   
+
+ stream<Utterance> Import_Utterances = Custom(Import_Utterances_1,Import_Utterances_2,Import_Utterances_3,Import_Utterances_4,Import_Utterances_5)
+                 {
+                     logic
+                       onTuple Import_Utterances_1 :
+                      {
+                        submit( Import_Utterances_1 , Import_Utterances );
+                      }
+                 }
+
+
+
+   () as TcpSink_Import_UtterancesStream = TCPSink(Import_Utterances)
+    {
+      param
+          role  : server;
+          port  : $connPort;
+         //  name  : $connHost;
+          format : csv;
+      config
+         threadedPort : queue(Import_Utterances,Sys.Wait, 1000000);
+
+
+    }
+
+config
+            hostPool : P1=createPool({size=1u, tags=["<%=$ssystem%>"]},Sys.Shared);
+            placement  : host(P1); 
+            restartable : false;
+
+
+}
