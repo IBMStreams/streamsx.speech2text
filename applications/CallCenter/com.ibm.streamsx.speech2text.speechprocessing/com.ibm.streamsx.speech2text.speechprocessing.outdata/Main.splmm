@@ -98,14 +98,14 @@ composite Main
                       }
                  }
 
-	() as TestSink = FileSink(Import_Utterances){
-            param
-                    file: "/home/streamsadmin/data/test.dat";
-                    format : csv ;
-                    closeMode : time;
-                    timePerFile : 86000.0f;
-                    flush : 10u;
-	}
+//	() as TestSink = FileSink(Import_Utterances){
+//            param
+//                    file: "/home/streamsadmin/data/test.dat";
+//                    format : csv ;
+//                    closeMode : time;
+//                    timePerFile : 86000.0f;
+//                    flush : 10u;
+//	}
 
    () as TcpSink_Import_UtterancesStream = TCPSink(Import_Utterances)
     {
