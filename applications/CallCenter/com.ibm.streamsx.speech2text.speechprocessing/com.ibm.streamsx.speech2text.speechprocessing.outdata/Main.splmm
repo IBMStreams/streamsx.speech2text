@@ -46,7 +46,9 @@ composite Main
 		   							int32 speakerId,
                                     rstring callCenter,
                                     float64 utteranceConfidence,
-                                    list<float64>  utteranceTokenConfidences>;
+                                    list<float64>  utteranceTokenConfidences,
+                                    list<int32> utteranceSpeakers,
+									list<rstring> nBestHypotheses> ;
 	   	
 			
 	graph

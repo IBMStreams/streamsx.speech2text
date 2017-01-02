@@ -583,7 +583,7 @@ composite Main
 
              
   config
-            hostPool : P1=createPool({size=1u, tags=["watson5"]},Sys.Shared);
+            hostPool : P1=createPool({size=1u, tags=["setup"]},Sys.Shared);
             placement  : host(P1) , hostColocation("SameHost");   
 
 

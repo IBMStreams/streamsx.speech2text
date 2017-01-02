@@ -35,14 +35,18 @@ type bestUtterance = tuple<rstring id, rstring channel_id
 	, float64 utteranceStartTime, float64 utteranceEndTime
 	,  uint32 captureSeconds,  int32 utteranceNumber
 	, rstring utterance, float64 utteranceConfidence
-	, list<float64> utteranceTokenConfidences> ;
+	, list<float64> utteranceTokenConfidences
+	, list<int32> utteranceSpeakers
+	, list<rstring> nBestHypotheses> ;
 
 type  Utterance       = tuple<rstring callId, int32 utteranceNumber
 	,  float64 utteranceStartTime, float64 utteranceEndTime
 	,  uint32 captureSeconds,  rstring role
 	, rstring utterance, int32 speakerId
 	, rstring callCenter,  float64 utteranceConfidence
-	, list<float64> utteranceTokenConfidences>;
+	, list<float64> utteranceTokenConfidences
+	, list<int32> utteranceSpeakers
+	, list<rstring> nBestHypotheses> ;
 type  Utterance_File  = tuple<rstring ipaddress, rstring startingTime
 	, rstring callCenter, int32 utteranceNumber
 	,  float64 utteranceStartTime, float64 utteranceEndTime
@@ -149,7 +153,12 @@ composite Watson
                            list<rstring> tokens = tokenize(id,"_",true);
 
                          // mutable rstring tempUtterance = utterance;
-                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id, callCenter = $callCenter, utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences }  , Utterance_Data<%=$jobNumber%>  ); 
+                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, 
+                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, 
+                        	captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, 
+                        	speakerId = (int32)channel_id, callCenter = $callCenter, 
+                        	utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences,
+                        	utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses }  , Utterance_Data<%=$jobNumber%>  ); 
                         submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
                         	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File<%=$jobNumber%>  ); 
 
@@ -217,7 +226,9 @@ composite SpeechToText(input inp ; output Utterances, Debug)
 			           					 utteranceNumber = getUtteranceNumber(),
 			           					 utterance = getUtteranceText(),
 			           					 utteranceConfidence = getUtteranceConfidence(),
-			           					 utteranceTokenConfidences = getUtteranceWordConfidences();
+			           					 utteranceTokenConfidences = getUtteranceWordConfidences(),
+			           					 utteranceSpeakers = getUtteranceSpeakers(), 
+			           					 nBestHypotheses = getNBestHypotheses();
 			           		Debug : 
 			           				log = getDiagnosticsMessage(); 
 		                config
