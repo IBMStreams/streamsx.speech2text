@@ -12,4 +12,4 @@ Check out this video about how Verizon is using this solution: https://youtu.be/
 
 Requirements:
 1. atlas, atlas-devel, libcap-devel, libpcap-devel packages (use yum install)
-2. com.ibm.streams.speech2text and com.ibm.streamsx.network toolkit. 
+2. com.ibm.streams.speech2text (included as a separate download with the product) and com.ibm.streamsx.network (included in the product toolkits) toolkits. 
