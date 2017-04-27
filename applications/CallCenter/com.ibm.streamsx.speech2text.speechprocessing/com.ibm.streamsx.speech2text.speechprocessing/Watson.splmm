@@ -151,17 +151,21 @@ composite Watson
                        onTuple Utterances<%=$jobNumber%> :
                       { 
                            list<rstring> tokens = tokenize(id,"_",true);
-
-                         // mutable rstring tempUtterance = utterance;
-                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, 
-                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, 
-                        	captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, 
-                        	speakerId = (int32)channel_id, callCenter = $callCenter, 
-                        	utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences,
-                        	utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses }  , Utterance_Data<%=$jobNumber%>  ); 
-                        submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
-                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File<%=$jobNumber%>  ); 
-
+						if (length(channel_id) > 0){
+	                         // mutable rstring tempUtterance = utterance;
+	                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, 
+	                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, 
+	                        	captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, 
+	                        	speakerId = (int32)channel_id, callCenter = $callCenter, 
+	                        	utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences,
+	                        	utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses }  , Utterance_Data<%=$jobNumber%>  ); 
+	                        if (size(tokens) > 1){
+		                        submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
+		                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File<%=$jobNumber%>  );
+		                    } 
+						} else {
+							printStringLn("Channel_id empty: " + (rstring) Utterances<%=$jobNumber%>); 
+						}
 
                       }
                 }
@@ -201,6 +205,7 @@ composite Watson
            config
             hostPool : P1=createPool({size=1u, tags=["<%=$ssystem%>"]},Sys.Shared);
             placement  : host(P1);
+            restartable : false; 
 }  
 
 
