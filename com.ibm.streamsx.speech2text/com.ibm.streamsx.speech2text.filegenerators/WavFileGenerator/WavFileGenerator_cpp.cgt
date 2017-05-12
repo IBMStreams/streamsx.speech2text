@@ -1,0 +1,201 @@
+/* Additional includes go here */
+
+#pragma SPL_NON_GENERIC_OPERATOR_IMPLEMENTATION_PROLOGUE
+
+// Constructor
+MY_OPERATOR::MY_OPERATOR()
+{
+    // Initialization code goes here  
+//	ptr_myfile = fopen("/home/streamsadmin/tmp/duke.bin", "wb");
+	ptr_myfile = NULL;
+	//std::cout << "constructor"  << std::endl;
+    strCmdPath = getParameter_ffmpegLocation();
+    if (strCmdPath.rfind("/") != (strCmdPath.length()-1)) {
+    	strCmdPath += "/";
+    }
+    
+    strBINPath = getParameter_writeBINLocation();
+    if (strBINPath.rfind("/") != (strBINPath.length()-1)) {
+    	strBINPath += "/";
+    }
+    
+    strWAVPath = getParameter_writeWAVLocation();
+    if (strWAVPath.rfind("/") != (strWAVPath.length()-1)) {
+    	strWAVPath += "/";
+    }
+    
+    intDelBin = 0;
+    std::string strDelBin = getParameter_deleteBINFile();
+    if (strDelBin.length() > 0) {
+    	//std::cout << std::endl << "set Del True=" << strDelBin.compare(0,1,"T") << std::endl << std::endl;
+    	if (!(strDelBin.compare(0,1,"T")) || !(strDelBin.compare(0,1,"t"))) {
+    		intDelBin = 1;
+    	}
+    }
+}
+
+// Destructor
+MY_OPERATOR::~MY_OPERATOR() 
+{
+    // Finalization code goes here
+//	fclose(ptr_myfile);
+//	std::cout << "destructor" << std::endl;
+}
+
+// Notify port readiness
+void MY_OPERATOR::allPortsReady() 
+{
+    // Notifies that all ports are ready. No tuples should be submitted before
+    // this. Source operators can use this method to spawn threads.
+
+    /*
+      createThreads(1); // Create source thread
+    */
+}
+ 
+// Notify pending shutdown
+void MY_OPERATOR::prepareToShutdown() 
+{
+    // This is an asynchronous call
+}
+
+// Processing for source and threaded operators   
+void MY_OPERATOR::process(uint32_t idx)
+{
+    // A typical implementation will loop until shutdown
+    /*
+      while(!getPE().getShutdownRequested()) {
+          // do work ...
+      }
+    */
+}
+
+// Tuple processing for mutating ports 
+void MY_OPERATOR::process(Tuple & tuple, uint32_t port)
+{
+    // Sample submit code
+    /* 
+      submit(otuple, 0); // submit to output port 0
+    */
+    // Sample cast code
+    /*
+    switch(port) {
+    case 0: { 
+      IPort0Type & ituple = static_cast<IPort0Type&>(tuple);
+      ...
+    } break;
+    case 1: { 
+      IPort1Type & ituple = static_cast<IPort1Type&>(tuple);
+      ...
+    } break;
+    default: ...
+    }
+    */
+	IPort0Type const & ituple = static_cast<IPort0Type const&>(tuple);
+
+	if (!ptr_myfile){
+		SPL::rstring filename = ituple.get_filename();
+		strInFileName = filename;
+	    size_t	posSlash = strInFileName.rfind("/");
+	    
+	    
+		//std::string strPath = strFileName.substr(0,posSlash);
+		std::string strFileOnly = strInFileName.substr(posSlash + 1);
+		strBinFileName = strBINPath + strFileOnly + ".bin";
+		strWavFileName = strWAVPath + strFileOnly + ".wav";
+		
+		//std::cout << "open file" << std::endl;
+		ptr_myfile = fopen(strBinFileName.c_str(), "wb");
+		
+	}
+
+	SPL::blob data  = ituple.get_speech();
+	//std::cout << data.getSize() << "string " << strFileName << std::endl ;
+		
+	const char *  xyz = (const char*)data.getData();
+
+	OPort1Type otuple;
+	otuple.set_speech2(xyz);
+	submit(otuple, 1); // submit to output port 1
+	fwrite(xyz,  data.getSize(), 1, ptr_myfile);
+}
+
+// Tuple processing for non-mutating ports
+void MY_OPERATOR::process(Tuple const & tuple, uint32_t port)
+{
+    // Sample submit code
+    /* 
+      OPort0Type otuple;
+      submit(otuple, 0); // submit to output port 0
+    */
+    // Sample cast code
+    /*
+    switch(port) {
+    case 0: { 
+      IPort0Type const & ituple = static_cast<IPort0Type const&>(tuple);
+      ...
+    } break;
+    case 1: { 
+      IPort1Type const & ituple = static_cast<IPort1Type const&>(tuple);
+      ...
+    } break;
+    default: ...
+    }
+    */
+}
+
+// Punctuation processing
+void MY_OPERATOR::process(Punctuation const & punct, uint32_t port)
+{
+    /*
+      if(punct==Punctuation::WindowMarker) {
+        // ...;
+      } else if(punct==Punctuation::FinalMarker) {
+        // ...;
+      }
+    */
+	//std::cout << "punct process" << std::endl;
+      if(punct==Punctuation::WindowMarker) {
+        //std::cout << "Window punct" << std::endl;
+    	if (ptr_myfile) {
+            fclose(ptr_myfile);
+            ptr_myfile = NULL;    		
+    	}
+        /* 
+         * we could add the wav file header here in a subsequent process
+         * 
+         */
+//        strCmdPath = getParameter_ffmpegLocation();
+//        strBINPath = getParameter_writeBINLocation();
+//        strWAVPath = getParameter_writeWAVLocation();
+
+//        if (strCmdPath.rfind("/") != (strCmdPath.length()-1)) {
+//        	strCmdPath += "/";
+//        }
+        	
+        //std::cout << "ffmpeg location " << strCommand << std::endl << " slash=" << strCommand.rfind("/") << "len=" << strCommand.length() << std::endl;
+        std::string strCommand = strCmdPath + "ffmpeg  -y -f s16le -ar 8000   -i " + strBinFileName + " -ar 8000 " + strWavFileName;
+		//std::cout << strCommand << std::endl;
+		system(strCommand.c_str());
+		
+		if (intDelBin > 0) {
+			strCommand = "rm -f " + strBinFileName;
+			//std::cout << strCommand << std::endl;
+			system(strCommand.c_str());
+		}
+		
+        OPort0Type otuple;
+        otuple.set_filename( strWavFileName );
+        submit(otuple, 0); //submit completed filename to port 0
+         
+      }
+      else if(punct==Punctuation::FinalMarker) {
+          //std::cout << "Final punct" << std::endl;
+        // ...;
+      } 
+      else {
+    	  //std::cout << "other punct" << std::endl;
+      }
+}
+
+#pragma SPL_NON_GENERIC_OPERATOR_IMPLEMENTATION_EPILOGUE

@@ -3,13 +3,9 @@
  * All Rights Reserved
  *******************************************************************************/
 // Perl Arguments in effect for mixed-mode processing
-// Argument count: 6
-// $ARGV[0]:5
+// Argument count: 2
+// $ARGV[0]:1
 // $ARGV[1]:3
-// $ARGV[2]:3
-// $ARGV[3]:3
-// $ARGV[4]:3
-// $ARGV[5]:3
 
 
 
@@ -114,7 +110,7 @@ composite Main
     }
 
 config
-            hostPool : P1=createPool({size=1u, tags=["setup"]},Sys.Shared);
+            hostPool : P1=createPool({size=1u, tags=[""]},Sys.Shared);
             placement  : host(P1); 
             restartable : false;
 

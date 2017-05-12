@@ -1,0 +1,44 @@
+namespace com.ibm.streamsx.speech2text.speechprocessing.wavgen ;
+
+use com.ibm.streamsx.speech2text.filegenerators::*;
+
+
+public composite BinaryOuput (input inFileName; output BinaryFile)
+//composite BinaryOuput
+{
+	param
+		expression<rstring> $FFMPEG_LOC : getSubmissionTimeValue("ffmpegLocation") ;
+		expression<rstring> $BIN_LOC    : getSubmissionTimeValue("writeBINLocation") ;
+		expression<rstring> $WAV_LOC    : getSubmissionTimeValue("writeWAVLocation") ;
+		expression<rstring> $DELETE_BIN : getSubmissionTimeValue("deleteBINFile", "TRUE") ;
+	graph
+	
+		/*
+		 * I would expect this to work fine even with just filename and the speech blob
+		 */
+		stream<rstring id, rstring createTime, blob speech, rstring filename> ReadPayload = FileSource(inFileName)
+		{
+			param
+				format : csv ;
+			output
+				ReadPayload : filename = FileName() ;
+		}
+
+		/*
+		 * Rename binaryWavPreProc -> WavFileGenerator
+		 * - Remove speech and speech2 outputs
+		 * - Fail on "ffmpeg" location doesn't exist
+		 */
+		(stream<rstring filename> BinaryFile; stream<rstring speech2> PayloadTest ; stream<blob speech> PayloadPreWav) = WavFileGenerator(ReadPayload)
+		{
+			param 
+				ffmpegLocation   : $FFMPEG_LOC;
+				writeBINLocation : $BIN_LOC;
+				writeWAVLocation : $WAV_LOC;
+				deleteBINFile    : $DELETE_BIN;
+				
+			config 
+				threadedPort: queue(ReadPayload, Sys.Wait, 1000);
+		}
+}
+

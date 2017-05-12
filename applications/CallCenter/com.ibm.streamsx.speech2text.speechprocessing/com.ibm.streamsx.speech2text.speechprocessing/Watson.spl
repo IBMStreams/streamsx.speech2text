@@ -3,13 +3,9 @@
  * All Rights Reserved
  *******************************************************************************/
 // Perl Arguments in effect for mixed-mode processing
-// Argument count: 6
-// $ARGV[0]:5
+// Argument count: 2
+// $ARGV[0]:1
 // $ARGV[1]:3
-// $ARGV[2]:3
-// $ARGV[3]:3
-// $ARGV[4]:3
-// $ARGV[5]:3
 
 
 namespace com.ibm.streamsx.speech2text.speechprocessing;  
@@ -107,7 +103,7 @@ composite Watson
            }
 
 
-                @parallel(width = 50  , partitionBy = [ { port = Imported2_Utterances1,  attributes = [jobId] } ])
+                @parallel(width = 3  , partitionBy = [ { port = Imported2_Utterances1,  attributes = [jobId] } ])
                 (
                    stream<bestUtterance> Utterances1;
                    stream<rstring log> Diagnostics1
@@ -138,17 +134,21 @@ composite Watson
                        onTuple Utterances1 :
                       { 
                            list<rstring> tokens = tokenize(id,"_",true);
-
-                         // mutable rstring tempUtterance = utterance;
-                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, 
-                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, 
-                        	captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, 
-                        	speakerId = (int32)channel_id, callCenter = $callCenter, 
-                        	utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences,
-                        	utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses }  , Utterance_Data1  ); 
-                        submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
-                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File1  ); 
-
+						if (length(channel_id) > 0){
+	                         // mutable rstring tempUtterance = utterance;
+	                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, 
+	                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, 
+	                        	captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, 
+	                        	speakerId = (int32)channel_id, callCenter = $callCenter, 
+	                        	utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences,
+	                        	utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses }  , Utterance_Data1  ); 
+	                        if (size(tokens) > 1){
+		                        submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
+		                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File1  );
+		                    } 
+						} else {
+							printStringLn("Channel_id empty: " + (rstring) Utterances1); 
+						}
 
                       }
                 }
@@ -186,8 +186,9 @@ composite Watson
 
 
            config
-            hostPool : P1=createPool({size=1u, tags=["setup"]},Sys.Shared);
+            hostPool : P1=createPool({size=1u, tags=[""]},Sys.Shared);
             placement  : host(P1);
+            restartable : false; 
 }  
 
 

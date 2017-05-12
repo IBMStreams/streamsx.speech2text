@@ -103,13 +103,13 @@ composite Main
  
 
 
-        stream<PacketType> PacketStream2  as Out = Functor(PacketStreamTCP1) 
+        stream<PacketType> PacketStream  as Out = Functor(PacketStreamTCP1) 
        { 
                    output Out : ipSrc_addr = ipSrcAddr, dstPort = IP_DST_PORT, protocol = IP_PROTOCOL, captureSeconds = captureSeconds, netflowMessage = PAYLOAD_DATA, payloadLength = PAYLOAD_LENGTH;
                 }   
  
  
- 
+ /*
 
                 stream<PacketType> PacketStream as Out = PacketFileSource()
                 {
@@ -120,11 +120,11 @@ composite Main
                 }    
 
  
- 
+ */
 
 
 //                @catch(exception=streams, tupleTrace=true, stackTrace=false)
-		stream<PacketType> RtpFiltered = RtpFilter(PacketStream,PacketStream2)
+		stream<PacketType> RtpFiltered = RtpFilter(PacketStream)
 		{
 		} 
 
@@ -496,8 +496,15 @@ composite Main
                    }
                    $jobCountString .= "(uint32)" . $sttCounts[$nHostsM1] . "]" ; 
 %> 
-
-
+				
+				/*
+				 * Use this to export the payload if we want to save off audio
+				 * raw data
+				 */
+				() as PayloadExport = Export(Payload)
+				{
+					param properties: {topic="Payload"} ; 
+				}
 
 
                ( stream<Payload payload, int32 jobId, uint32 hostId> PayloadEnhanced;
