@@ -15,11 +15,11 @@ JSI = $(STREAMS_INSTALL)
 SETUPHOST=setup
 HOST1=watson1
 
-all: setup outdata watson1 wavgenerator
+all: packethandler outdata watson1 wavgenerator
 $(BIN_LOC):
 	 mkdir -p $(BIN_LOC)
-setup: setup_
-setup_:
+packethandler: packethandler_
+packethandler_:
 	 export jobNumber=1; export jobCount=3; export jobHost=setup; ${SPLC} $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)  --output-directory output/packethandler
 outdata: outdata_
 outdata_:

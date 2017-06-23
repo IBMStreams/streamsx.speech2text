@@ -33,6 +33,8 @@
 
 namespace com.ibm.streamsx.speech2text.speechprocessing.callcenter.packethandler;  
 
+use com.ibm.streamsx.network.rtp::*; 
+
 composite PacketHandler
 {    
       param
