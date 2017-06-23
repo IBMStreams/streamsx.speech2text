@@ -1,0 +1,20 @@
+namespace com.ibm.streamsx.speech2text.callcenter.types;
+
+type 
+		
+		/*
+		 * Type of Stream exported to the "Data Center" by the DataCenterSink application
+		 */
+	    Utterance			=	tuple<rstring callId, 
+		    						int32 utteranceNumber,
+		    						float64 utteranceStartTime,  
+                                    float64 utteranceEndTime,
+                                    uint32 captureSeconds, 
+                                    rstring role,
+		   							rstring utterance,
+		   							int32 speakerId,
+                                    rstring callCenter,
+                                    float64 utteranceConfidence,
+                                    list<float64>  utteranceTokenConfidences,
+                                    list<int32> utteranceSpeakers,
+									list<rstring> nBestHypotheses> ;

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no" ?>
+<toolkitModel xmlns="http://www.ibm.com/xmlns/prod/streams/spl/toolkit" productVersion="4.2.0.0" xmlns:common="http://www.ibm.com/xmlns/prod/streams/spl/common" xmlns:ti="http://www.ibm.com/xmlns/prod/streams/spl/toolkitInfo" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+  <toolkit name="com.ibm.streamsx.speech2text.callcenter.types" requiredProductVersion="4.2.0.0" version="1.0.0">
+    <description>com.ibm.streamsx.speech2text.callcenter.types</description>
+    <uriTable>
+      <uri index="1" value="com.ibm.streamsx.speech2text.callcenter.types/CommonTypes.spl"/>
+    </uriTable>
+    <namespace name="com.ibm.streamsx.speech2text.callcenter.types">
+      <type column="6" line="8" name="Utterance" static="true" type="tuple&lt;rstring callId, int32 utteranceNumber, float64 utteranceStartTime, float64 utteranceEndTime, uint32 captureSeconds, rstring role, rstring utterance, int32 speakerId, rstring callCenter, float64 utteranceConfidence, list&lt;float64> utteranceTokenConfidences, list&lt;int32> utteranceSpeakers, list&lt;rstring> nBestHypotheses>" uriIndex="1"/>
+    </namespace>
+    <sabFiles>
+      <ti:include path="toolkit.xml" root="toolkitDir"/>
+      <ti:include path="impl/java/lib/**" root="toolkitDir"/>
+      <ti:include path="impl/java/bin/**" root="toolkitDir"/>
+      <ti:include path="impl/bin/**" root="toolkitDir"/>
+      <ti:include path="impl/lib/**" root="toolkitDir"/>
+      <ti:include path="impl/nl/*.dat" root="toolkitDir"/>
+      <ti:include path="etc/**" root="toolkitDir"/>
+      <ti:include path="lib/**" root="toolkitDir"/>
+      <ti:include path="nl/**" root="toolkitDir"/>
+      <ti:include path="opt/**" root="toolkitDir"/>
+    </sabFiles>
+  </toolkit>
+
+</toolkitModel>

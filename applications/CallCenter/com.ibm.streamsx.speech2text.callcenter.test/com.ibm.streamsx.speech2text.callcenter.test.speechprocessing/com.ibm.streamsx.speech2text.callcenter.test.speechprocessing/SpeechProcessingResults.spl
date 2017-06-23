@@ -1,0 +1,29 @@
+namespace com.ibm.streamsx.speech2text.callcenter.test.speechprocessing ;
+
+use com.ibm.streamsx.speech2text.callcenter.types::*; 
+
+composite SpeechProcessingResults
+{
+	param
+		expression<rstring> $connHost     : getSubmissionTimeValue("connHost" , "127.0.0.1");
+		expression<uint32>  $connPort     : (uint32) getSubmissionTimeValue("connPort");
+		expression<rstring> $controlDiagnostics  : getSubmissionTimeValue("controlDiagnostics");
+		expression<rstring> $utteranceDirectory  : getSubmissionTimeValue("utteranceDirectory");
+	graph
+		stream<Utterance> UtterancesStream = TCPSource()
+        {
+          param
+           role    : client;
+           address : $connHost;
+           port    :$connPort;
+           format  : csv;
+        }
+        
+        () as UtteranceSink = FileSink(UtterancesStream)
+        {
+        	param
+        		file : $utteranceDirectory + "/utteranceResults.csv"; 
+        		flush : 1u; 
+        }
+        
+}

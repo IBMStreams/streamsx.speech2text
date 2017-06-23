@@ -1,1 +1,0 @@
-streamtool submitjob output/com.ibm.streamsx.speech2text.test.packetsimulator.PacketSimulator/BuildConfig/com.ibm.streamsx.speech2text.test.packetsimulator.PacketSimulator.sab -P connPort=33333 -P connHost=127.0.0.1 -P pcapFileDir=/home/streamsadmin/data/
