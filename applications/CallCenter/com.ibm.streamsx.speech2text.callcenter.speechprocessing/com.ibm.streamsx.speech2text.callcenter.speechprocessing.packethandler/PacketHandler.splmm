@@ -31,7 +31,7 @@
 
 %>
 
-namespace com.ibm.streamsx.speech2text.speechprocessing.callcenter.packethandler;  
+namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler;  
 
 use com.ibm.streamsx.network.rtp::*; 
 
@@ -105,17 +105,14 @@ composite PacketHandler
                 }   
 
 
-//                @catch(exception=streams, tupleTrace=true, stackTrace=false)
 		stream<PacketType> RtpFiltered = RtpFilter(PacketStream)
 		{
 		} 
 
-//                @catch(exception=streams, tupleTrace=true, stackTrace=false)
 		stream<RtpPacket> Rtp = RtpExtract(RtpFiltered)
 		{
 		}
 
-//               @catch(exception=streams, tupleTrace=true, stackTrace=false)
 		stream<RtpPacket> RtpDecoded = RtpDecode(Rtp)
 		{
 		}

@@ -3,7 +3,7 @@
 ** All Rights Reserved
 */
 
-namespace com.ibm.streamsx.speech2text.networktap;
+namespace com.ibm.streamsx.speech2text.callcenter.networktap;
 
 use com.ibm.streamsx.network.mac::*;
 use com.ibm.streamsx.network.ipv4::*;

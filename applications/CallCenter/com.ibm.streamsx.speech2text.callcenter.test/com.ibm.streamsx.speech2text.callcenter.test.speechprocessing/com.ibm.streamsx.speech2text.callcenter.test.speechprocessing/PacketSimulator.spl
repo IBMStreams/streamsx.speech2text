@@ -29,7 +29,7 @@ composite PacketSimulator
     		param
     		   directory : $PcapFileDir ;
 		   pattern : "\\.pcap$";
-		   initDelay : 3.0; 
+		   initDelay : 5.0; 
     	}
 
 		

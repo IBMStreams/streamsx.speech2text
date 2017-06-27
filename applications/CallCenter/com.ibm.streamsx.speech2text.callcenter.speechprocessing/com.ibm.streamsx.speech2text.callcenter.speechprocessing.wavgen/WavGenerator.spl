@@ -1,4 +1,4 @@
-namespace com.ibm.streamsx.speech2text.speechprocessing.callcenter.wavgen ;
+namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.wavgen ;
 
 composite WavGenerator
 {

@@ -18,7 +18,7 @@ To set the permissions on the executable you need sudo authority
 
 First unbundle the .sab file created 
 
-spl-app-info output/com.ibm.streamsx.speech2text.networktap.Main.sab --unbundle unbundled
+spl-app-info output/com.ibm.streamsx.speech2text.callcenter.networktap.Main.sab --unbundle unbundled
 
 Then set the permission using sudo or run as root  
 

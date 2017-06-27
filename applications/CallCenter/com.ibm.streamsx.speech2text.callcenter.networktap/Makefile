@@ -31,30 +31,17 @@ ifeq ($(STREAMS_STUDIO_BUILDING), 1)
   # Building from Streams Studio
 #  SPLC_FLAGS += i--no-toolkit-indexing 
 endif
-SPL_MAIN_COMPOSITE = com.ibm.streamsx.speech2text.networktap::Main
+SPL_MAIN_COMPOSITE = com.ibm.streamsx.speech2text.callcenter.networktap::Main
 SPL_DATA_DIR ?= ./data
 SPL_CMD_ARGS ?=  1  1
 
-BIN_LOC=impl/java/bin
 JSI = $(STREAMS_INSTALL)
 
-all: standalone
+all: BuildConfig
 
-
-$(BIN_LOC):
-	mkdir -p $(BIN_LOC)
-
-standalone: stand
-
-stand:
-	$(SPLC) $(SPLC_FLAGS) -T -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)
-
-distributed: dist
-
-dist:
+BuildConfig:
 	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)
 
 clean: 
 	$(SPLC) $(SPLC_FLAGS) -C -M $(SPL_MAIN_COMPOSITE)
-	rm -rf $(BIN_LOC)
 

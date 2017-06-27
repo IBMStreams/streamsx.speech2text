@@ -3,10 +3,10 @@
 SPLC = $(STREAMS_INSTALL)/bin/sc
 SPLC_FLAGS = -a 
 
-SPL_MAIN_COMPOSITE          = com.ibm.streamsx.speech2text.speechprocessing.callcenter.packethandler::PacketHandler
-SPL_MAIN_COMPOSITE_OUTDATA  = com.ibm.streamsx.speech2text.speechprocessing.callcenter.datacentersink::DataCenterSink
-SPL_MAIN_COMPOSITE_WATSON   = com.ibm.streamsx.speech2text.speechprocessing.callcenter.watsons2t::WatsonSpeech2Text
-SPL_MAIN_COMPOSITE_WAV      = com.ibm.streamsx.speech2text.speechprocessing.callcenter.wavgen::WavGenerator
+SPL_MAIN_COMPOSITE          = com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler::PacketHandler
+SPL_MAIN_COMPOSITE_OUTDATA  = com.ibm.streamsx.speech2text.callcenter.speechprocessing.datacentersink::DataCenterSink
+SPL_MAIN_COMPOSITE_WATSON   = com.ibm.streamsx.speech2text.callcenter.speechprocessing.watsons2t::WatsonSpeech2Text
+SPL_MAIN_COMPOSITE_WAV      = com.ibm.streamsx.speech2text.callcenter.speechprocessing.wavgen::WavGenerator
 SPL_DATA_DIR ?= ./data
 CALLCENTER_TYPES_TOOLKIT=../com.ibm.streamsx.speech2text.callcenter.types
 SPL_CMD_ARGS ?= 1 3 -t $(STREAMS_STUDIO_SPL_PATH):$(STREAMS_SPLPATH):$(CALLCENTER_TYPES_TOOLKIT)
@@ -15,14 +15,14 @@ JSI = $(STREAMS_INSTALL)
 SETUPHOST=setup
 HOST1=watson1
 
-all: packethandler outdata watson1 wavgenerator
+all: packethandler datacentersink watson1 wavgenerator
 $(BIN_LOC):
 	 mkdir -p $(BIN_LOC)
 packethandler: packethandler_
 packethandler_:
 	 export jobNumber=1; export jobCount=3; export jobHost=setup; ${SPLC} $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)  --output-directory output/packethandler
-outdata: outdata_
-outdata_:
+datacentersink: datacentersink_
+datacentersink_:
 	 export jobNumber=1; export jobCount=3; export jobHost=setup; ${SPLC} $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_OUTDATA) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/datacentersink
 watson1: watson_1
 watson_1:

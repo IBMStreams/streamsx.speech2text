@@ -1,4 +1,4 @@
-package com.ibm.streamsx.speech2text.speechprocessing.callcenter.wavgen;
+package com.ibm.streamsx.speech2text.callcenter.speechprocessing.wavgen;
 
 import java.util.List;
 import java.util.ListIterator;

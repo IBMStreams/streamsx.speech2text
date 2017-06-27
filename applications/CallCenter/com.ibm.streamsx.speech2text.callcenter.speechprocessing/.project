@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <projectDescription>
-	<name>CallCenter</name>
+	<name>SpeechProcessing</name>
 	<comment></comment>
 	<projects>
 		<project>com.ibm.streamsx.network</project>

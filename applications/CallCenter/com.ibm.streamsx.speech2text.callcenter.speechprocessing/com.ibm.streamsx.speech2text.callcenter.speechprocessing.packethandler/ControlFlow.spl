@@ -3,7 +3,7 @@
  * All Rights Reserved
  *******************************************************************************/
 
-namespace com.ibm.streamsx.speech2text.speechprocessing.callcenter.packethandler;  
+namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler;  
   
 //  type sttInput = tuple<rstring callId, rstring cspeakerId, rstring wavFile, int32 jobId, uint32 hostId > ;
 
