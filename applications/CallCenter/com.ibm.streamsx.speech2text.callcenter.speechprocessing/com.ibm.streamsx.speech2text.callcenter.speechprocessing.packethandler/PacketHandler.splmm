@@ -1,0 +1,576 @@
+/*******************************************************************************
+ * Copyright (C) 2016, International Business Machines Corporation
+ * All Rights Reserved
+ *******************************************************************************/
+<% # Switch to Perl scripting mode
+
+        use integer;
+        use Cwd;
+        use Env qw(WORKSPACE_ROOT);
+
+        print "// Perl Arguments in effect for mixed-mode processing\n";
+        my $argCnt = @ARGV;
+        print "// Argument count: ", $argCnt, "\n";
+        my $argIdx;
+        for ($argIdx = 0; $argIdx < $argCnt; $argIdx++) {
+                print "// \$ARGV\[", $argIdx, "\]\:", $ARGV[$argIdx], "\n";
+        }
+        my $nHosts = $ARGV[0];
+        my $nHostsM1 = $nHosts - 1;;
+        my $hostId;
+        my @nJobs;
+        
+        my @sttCounts;
+
+        for ($hostId = 1; $hostId <= $nHosts; $hostId++) {
+                @sttCounts[$hostId-1] = $ARGV[$hostId];
+        }
+
+        my $ssystem   = $ENV{'jobHost'};
+
+
+%>
+
+namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler;  
+
+use com.ibm.streamsx.network.rtp::*; 
+use com.ibm.streamsx.speech2text.callcenter.types::*;
+
+composite PacketHandler
+{    
+      param
+
+       expression<float64> $sttimeout    : (float64) getSubmissionTimeValue("sttimeout", "30");
+       expression<rstring> $connHost     : getSubmissionTimeValue("connHost");
+       expression<uint32>  $connPort     : (uint32) getSubmissionTimeValue("connPort");
+       expression<rstring> $controlDiagnostics  : getSubmissionTimeValue("controlDiagnostics");
+        expression<int32>  $tupleDebug   : (int32) getSubmissionTimeValue("tupleDebug", "10000000");
+    
+
+	type 
+		ReducedPacket = rstring ipSrc_addr ,
+                             uint16 dstPort, // destination port 
+                             uint8  protocol,
+                             uint32 captureSeconds,    
+
+		blob netflowMessage, // the Netflow message from a packet, excluding all network headers
+		uint32 payloadLength ; // payload length in bytes 
+
+ 
+  
+		RtpPacket = rstring ipSrc_addr, uint32 ssrc, uint32 ts, uint32 captureSeconds,  uint16 seq, uint32 payloadLength, blob payload ;
+//		payload = tuple<rstring id, rstring channel_id,  uint32 ssrc, uint32 ts, uint32 captureSeconds, uint16 seq,  int32 samples, blob speech> ;  
+
+ 
+        SSRC_data   = uint32 ts,uint16 seq;
+        SSRC_first  = uint32 ssrc, uint32 captureSeconds,uint16 seq;
+
+      graph
+ 
+
+
+
+
+        stream<PacketType> PacketStreamTCP1 = TCPSource()
+        {
+          param
+           role    : client;
+           address : $connHost;
+           port    :$connPort;
+           format  : csv;
+
+        }
+
+ 
+ 
+
+
+        stream<ReducedPacket> PacketStream  as Out = Functor(PacketStreamTCP1) 
+       { 
+                   output Out : ipSrc_addr = ipSrcAddr, dstPort = IP_DST_PORT, protocol = IP_PROTOCOL, captureSeconds = captureSeconds, netflowMessage = PAYLOAD_DATA, payloadLength = PAYLOAD_LENGTH;
+                }   
+
+
+		stream<ReducedPacket> RtpFiltered = RtpFilter(PacketStream)
+		{
+		} 
+
+		stream<RtpPacket> Rtp = RtpExtract(RtpFiltered)
+		{
+		}
+
+		stream<RtpPacket> RtpDecoded = RtpDecode(Rtp)
+		{
+		}
+		
+
+		stream<payload> PrePayload = Custom(RtpDecoded)
+		{
+			logic
+				onTuple RtpDecoded :
+				{
+					submit({ id =(rstring) ipSrc_addr, channel_id = "und",  ssrc =  ssrc, ts = ts, captureSeconds=captureSeconds, seq = seq,  samples = (int32)payloadLength, speech = payload}, PrePayload) ;
+				}
+
+		}
+
+(       stream<rstring log> ControlFlowDiagnostics2;
+        stream<payload> Payload  )  = Custom(PrePayload)
+                {
+                        logic
+                              state : {  
+                                    mutable SSRC_data ssrc_data;
+                                    mutable SSRC_first ssrc_first; 
+
+                                    mutable int32 tupleCount ;
+                                    mutable int32 missing ;  
+                                    mutable int32 missing2 ;  
+
+                                   mutable map<rstring ,  uint32> callTimeoutMap;
+                                     mutable map<rstring ,  uint32> callStartMap;
+
+                                   mutable map<rstring ,  map<uint32,SSRC_data >> callMap;
+                                   mutable map<rstring ,  list<SSRC_first>> callssrcMap;  // jms 0725
+
+
+                                 mutable int32 temp = 0; 
+                             }
+                                onTuple PrePayload :
+                                {   
+                                  tupleCount = tupleCount + 1; 
+                                  mutable rstring ipSrcAddr = id; 
+                              
+                                  if ( ipSrcAddr in callMap ) 
+                                  {   
+                                     
+                                     mutable map<uint32 ,SSRC_data> ssrcMap = callMap[ipSrcAddr];   
+
+                                   uint32 lastTimestamp = callTimeoutMap[ipSrcAddr]; 
+                                      if ( captureSeconds  > (lastTimestamp + (uint32)3 ) ) 
+                                      { 
+                                         mutable rstring id = ipSrcAddr;
+                                         id = concat(id,"_");
+                                         id = concat(id,(rstring)callStartMap[ipSrcAddr]);
+
+                                          // cut a diagnostic record indicating length of call 
+                                          mutable rstring logRecord  = ctime(getTimestamp());
+                                          logRecord = concat(logRecord," "); 
+
+                                         mutable uint32 callTime = lastTimestamp - callStartMap[ipSrcAddr];
+                                         logRecord = concat(logRecord,id);
+                                         logRecord = concat(logRecord," ");
+                                         logRecord = concat(logRecord,(rstring)callTime);
+                                         logRecord = concat(logRecord," ");
+
+                                
+                                            mutable int32 idx;  
+                                            idx = 0;
+                                            list<uint32> keylist = keys(ssrcMap); 
+
+                                          logRecord = concat(logRecord,(rstring)size(keylist));
+                                          submit({ log = logRecord}, ControlFlowDiagnostics2 );
+
+                           
+                                            while ( idx < size(keylist) )
+                                            {
+                                              // println ( keylist[idx] );   
+                                              idx = idx + 1;
+                                            } 
+
+
+                                            //******************  need to remove everything associated with the ipSrcAddr 
+   
+                                            clearM(ssrcMap);  
+
+                                           // list <uint32> ssrcList = callssrcMap[ipSrcAddr];    
+
+                                           removeM(callssrcMap,ipSrcAddr); 
+ 
+                                            removeM(callTimeoutMap,ipSrcAddr);
+                                            remove(callStartMap,ipSrcAddr);   
+                                       
+                                            //******************** end removing everything                                           
+                                           
+                                           //******************** new call started .. add it 
+
+
+                                            // insertM(ssrcMap,ssrc,ts);
+                 
+ 
+                                           //  insertM(callMap, ipSrcAddr,ssrcMap);
+
+                                            insertM(callTimeoutMap, ipSrcAddr, captureSeconds);
+                                            insertM(callStartMap, ipSrcAddr, captureSeconds);
+
+
+                                             mutable list<SSRC_first> temp = (list<SSRC_first>)[];
+       
+
+                                             insertM(callssrcMap,ipSrcAddr,temp); 
+
+                                      }    // ends the 3 second timeout 
+  
+
+                                      callTimeoutMap[ipSrcAddr] = captureSeconds ;  
+
+                                      if ( ssrc in ssrcMap )
+                                      { 
+                                          
+                              
+
+                                           ssrc_data = ssrcMap[ssrc]; 
+
+                                           if ( (ssrc_data.seq + (uint16)1 ) != seq ) 
+                                           {  
+                                              if ( seq > ssrc_data.seq  ) 
+                                              {  
+                                                mutable int32 diff = (int32)(seq - ssrc_data.seq);  
+                                                diff = diff - (int32)1;
+                                                if ( diff > 0 ) 
+                                                { 
+                                                   missing2 = missing2 + diff;
+                                                }
+                                                else  
+                                                {
+                                                   missing2 = missing2 + 1; 
+                                                } 
+                                              } 
+                                              else 
+                                              { 
+                                                 missing2 = missing2 + 1;
+                                              }
+                                              missing = missing +1;     
+/*
+                                                mutable rstring temp =  (rstring)ssrc_data.seq;
+                                                temp = concat(temp," ");
+                                                temp = concat(temp,(rstring)seq);
+                                                temp = concat(temp," ");
+                                                temp = concat(temp,(rstring)ssrc); 
+
+                                               //  submit({ log = temp}, ControlFlowDiagnostics2 ); 
+*/ 
+                                           }
+
+                                            //  adding now
+                                            ssrc_data.ts = ts;
+                                            ssrc_data.seq = seq;
+                                            insertM(ssrcMap,ssrc,ssrc_data);
+
+                                             insertM(callMap, ipSrcAddr,ssrcMap);    
+
+                                  
+                                     }
+                                     else
+                                     {
+                                         // addssrc to CallMap structure . not used YET 
+
+                                            //  adding now
+                                            ssrc_data.ts = ts;
+                                            ssrc_data.seq = seq;
+
+                                            insertM(ssrcMap,ssrc,ssrc_data); 
+ 
+                                           //  insertM(ssrcMap,ssrc,ts);  
+ 
+                                         callMap[ipSrcAddr] = ssrcMap;   
+ 
+                                         // add ssrc_data  to callssrcMap 
+  
+                                       mutable list<SSRC_first> temp = callssrcMap[ipSrcAddr];  
+                                        ssrc_first.captureSeconds = captureSeconds;
+                                        ssrc_first.seq = seq;
+                                        ssrc_first.ssrc = ssrc;
+                                        
+                                         appendM(temp,ssrc_first);
+                                         insertM(callssrcMap,ipSrcAddr,temp);  
+   
+                                         //  lets look at the timestamps for each ssrc within a supposed call 
+                                             mutable int32 idx;
+                                            idx = 0;
+
+                                            mutable rstring temp2 ="ts = ";
+                                            mutable rstring temp3 ="ssrc = ";
+                                            temp3 = concat(temp3,ipSrcAddr); 
+                                            temp3 = concat(temp3," "); 
+                                        while ( idx < size(temp) )    // jms 0725
+                                            {   
+                                              ssrc_first = temp[idx];
+                                              temp2 = concat(temp2,(rstring)ssrc_first.captureSeconds);
+                                              temp2 = concat(temp2," "); 
+                                              temp2 = concat(temp2," "); 
+
+                                              temp3 = concat(temp3,(rstring)ssrc_first.ssrc);
+                                              temp3 = concat(temp3," "); 
+                                              temp3 = concat(temp3," ");
+
+
+                                              idx = idx + 1;
+                                            } 
+                                            // submit({ log = temp2}, ControlFlowDiagnostics2 );
+                                            // submit({ log = temp3}, ControlFlowDiagnostics2 );
+
+                                    }
+
+                                     // submit the tuple  ...  
+                                     // we assume the start of a new call is the client...  this ssems to be true if its the bveginning of a call 
+
+                                    // callid will be ipsrc concatenated with timestamp
+                                    // channel id will be the ssrc as it was seen in the trace  
+                                  
+                                    mutable rstring id = ipSrcAddr;
+                                    id = concat(id,"_"); 
+                                    id = concat(id,(rstring)callStartMap[ipSrcAddr]);
+                                    mutable int32 idx3 = 0 ; 
+     
+
+                                    mutable list<SSRC_first> callssrcList = callssrcMap[ipSrcAddr];  
+                                    mutable int32 channel_id = 111;  
+                                    mutable uint32 ssrcStartTime = (uint32)0;
+                                    while ( idx3 <  size(callssrcList)  )
+                                    { 
+                                       if ( ssrc == callssrcList[idx3].ssrc )
+                                       {
+                                         channel_id = idx3; 
+                                         ssrcStartTime = callssrcList[idx3].captureSeconds;
+                                       }
+                                       idx3 = idx3 + 1;
+                                    }
+
+                            
+                                    submit({ id = id, channel_id = (rstring)channel_id, ssrc = ssrc, ts = ts, captureSeconds = ssrcStartTime, seq = seq, samples = samples,  speech = speech}, Payload) ;                                     
+ 
+
+                                 }
+                                  else 
+                                  {  
+                                   // okay so we havent seen anything yet on this ipSrc address  so we add an entry to our call map 
+                                   // we will need the  SSRC for the channel, 
+                                   // timestamp within rtp packet  
+                                   //    
+
+
+                                     mutable map<uint32 ,SSRC_data> ssrcMap = {};
+
+                                  //  adding now
+                                            ssrc_data.ts = ts;
+                                            ssrc_data.seq = seq;
+
+                                   insertM(ssrcMap,ssrc,ssrc_data); 
+  
+                                  // insertM(ssrcMap,ssrc,ts); 
+ 
+                                    insertM(callMap, ipSrcAddr,ssrcMap);   
+                                 
+                                     insertM(callTimeoutMap, ipSrcAddr, captureSeconds);      
+                                     insertM(callStartMap, ipSrcAddr, captureSeconds);      
+
+                                    mutable list<SSRC_first> temp = (list<SSRC_first>)[]; 
+                                    ssrc_first.captureSeconds = captureSeconds;
+                                    ssrc_first.seq = seq;
+                                    ssrc_first.ssrc = ssrc; 
+                                    appendM(temp,ssrc_first);
+                                    insertM(callssrcMap,ipSrcAddr,temp);
+ 
+  
+                                     // submit the tuple  ...  
+                                     // we assume the start of a new call is the client...  this ssems to be true if its the bveginning of a call 
+
+                                    //  reset id and channel_id appropriately... 
+
+                                    mutable rstring id = ipSrcAddr; 
+                                    id = concat(id,"_");
+                                    id = concat(id,(rstring)callStartMap[ipSrcAddr]);
+                                    mutable int32 idx3 = 0 ;
+
+                                    mutable list<SSRC_first> callssrcList = callssrcMap[ipSrcAddr];
+                                    mutable int32 channel_id = 111; 
+                                    mutable uint32 ssrcStartTime = (uint32)0;
+                                    while ( idx3 <  size(callssrcList)  )
+                                    {
+                                       if ( ssrc == callssrcList[idx3].ssrc )
+                                       {
+                                         channel_id = idx3;
+                                         ssrcStartTime = callssrcList[idx3].captureSeconds; 
+                                       }
+                                       idx3 = idx3 + 1;
+                                    }
+
+
+                                     submit({ id = (rstring)id, channel_id = (rstring)channel_id, ssrc = ssrc, ts = ts, captureSeconds = ssrcStartTime, seq =seq,   samples = samples , speech = speech}, Payload) ;                                     
+ 
+ 
+                                   //   println("first time ip let us treat this as a new call");
+                                   //   println(ipSrcAddr);
+
+                                  }
+ 
+                                if ( tupleCount % $tupleDebug == 0 )
+                                { 
+                                   mutable rstring temp = ctime(getTimestamp());
+                                   temp = concat(temp," ");
+                                   temp = concat(temp,(rstring)tupleCount);
+                                   temp = concat(temp," ");
+                                   temp = concat(temp,(rstring)missing);
+                                   temp = concat(temp," ");
+                                   temp = concat(temp,(rstring)missing2);
+
+                                   submit({ log = temp}, ControlFlowDiagnostics2 );
+                                   tupleCount = 0;
+                                   missing = 0; 
+                                   missing2 = 0 ; 
+
+                                   
+                                    mutable list<rstring> keylist = keys(callTimeoutMap);
+ 
+                                   mutable int32 idx;
+                                   mutable int32 unique_ips;
+                                   idx = 0;
+                                   unique_ips = 0; 
+                                    while ( idx < size(keylist) )
+                                    { 
+                                       uint32 lastTimestamp = callTimeoutMap[keylist[idx]];
+
+                                          if ( captureSeconds  <= (lastTimestamp + (uint32)3 ) ) 
+                                          { 
+                                            unique_ips = unique_ips + 1;
+                                          }
+                                             idx = idx + 1;
+                                    }   
+
+                                   temp = ctime(getTimestamp());
+                                   temp = concat(temp," total unique ip  ");
+                                   temp = concat(temp,(rstring)size(keylist));
+                                   temp = concat(temp,"  ip active  ");
+                                   temp = concat(temp,(rstring)unique_ips);
+                                   submit({ log = temp}, ControlFlowDiagnostics2 );
+
+
+ 
+                                }
+                                 
+                   } // on tuple
+
+                }      
+
+
+<%
+
+                    my $jobCountString = "[";
+                    for (my $i=0; $i <  $nHostsM1; $i++) {
+                       $jobCountString   .= "(uint32)" . $sttCounts[$i] . "," ;
+                   }
+                   $jobCountString .= "(uint32)" . $sttCounts[$nHostsM1] . "]" ; 
+%> 
+				
+				/*
+				 * Use this to export the payload if we want to save off audio
+				 * raw data
+				 */
+				() as PayloadExport = Export(Payload)
+				{
+					param properties: {topic="Payload"} ; 
+				}
+
+
+               ( stream<Payload payload, int32 jobId, uint32 hostId> PayloadEnhanced;
+                  stream<rstring log> ControlFlowDiagnostics )  = ControlFlow(Payload)
+                {
+                     param sttTimeout : $sttimeout;
+                           hostCount   : (uint32)<%=$nHosts%>;
+                           jobCount    : <%=$jobCountString%>;
+                } 
+
+                () as FileControlDiagnostics  = FileSink(ControlFlowDiagnostics, ControlFlowDiagnostics2)
+                {
+                        param
+                                file: $controlDiagnostics + "controlDiagnostics_{localtime:%m%d%y}_{id}.txt"; 
+                                format : txt ; 
+                                closeMode : time;
+                                timePerFile : 86000.0f;
+                                flush : 1u; 
+                }
+
+
+
+
+
+                stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,  blob speech, int32 samples, int32 jobId, uint32 hostId> PayloadEnhancedFlattened  = Custom(PayloadEnhanced)
+                {
+                        logic
+                              state : 
+                               mutable int32 temp = 0;
+                                onTuple PayloadEnhanced :
+                                {      
+                                        temp = temp + (int32)1;                         
+                                        submit({ id = payload.id, channel_id = payload.channel_id, ssrc = payload.ssrc, ts = payload.ts, captureSeconds = payload.captureSeconds,   speech = payload.speech, samples = payload.samples, jobId = jobId, hostId = hostId}, PayloadEnhancedFlattened) ;                                     
+                                }
+                }  
+
+// JMS - seperate out into multiple inmport and export jobs.... 
+
+ <% 
+
+                    my $StreamString = "stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,  blob speech, int32 samples, int32 jobId, uint32 hostId> PayloadEnhancedStream";
+                    my $SplitOutputPort = "(" . $StreamString . "1";
+                    for (my $i=2; $i <=  $nHosts; $i++) {
+                       $SplitOutputPort .= "; " . $StreamString . $i;
+                   }
+                   $SplitOutputPort .= ")";
+
+                    my $StreamString2 = "Utterances";
+                    my $UtterancePort =  $StreamString2 . "0";
+                    for (my $i=1; $i < $nHosts; $i++) {
+                       $UtterancePort .= "," . $StreamString2 . $i;
+                   }
+
+                    my $StreamString = "Diagnostics";
+                    my $DiagnosticPort = $StreamString . "0";
+                    for (my $i=1; $i < $nHosts  ; $i++) {
+                       $DiagnosticPort .= "," . $StreamString . $i;
+                   }
+
+                    my $StreamString3 = "RawData";
+                    my $RawData  = $StreamString3 . "0";
+                    for (my $i=1; $i < $nHosts  ; $i++) {
+                       $RawData .= "," . $StreamString3 . $i;
+                   }
+
+  %>  
+
+                <%=$SplitOutputPort%> = Split( PayloadEnhancedFlattened ) {
+                logic state:
+                        //mutable int32 count = 0;
+                        mutable int64 count = 0w;
+                param
+                        index: hostId;
+                } 
+
+<%
+
+                    for (my $i=1; $i <=  $nHosts; $i++) {
+%>
+
+
+
+
+                () as ExportFileOutput<%=$i%>  = Export(PayloadEnhancedStream<%=$i%>)
+                {
+                        param
+                      streamId  : "Import_Utterances<%=$i%>";
+                }
+
+
+<% 
+}
+%>
+             
+  config
+            hostPool : P1=createPool({size=1u, tags=["<%=$ssystem%>"]},Sys.Shared);
+            placement  : host(P1) , hostColocation("SameHost");   
+
+
+}  
+
+
+
+

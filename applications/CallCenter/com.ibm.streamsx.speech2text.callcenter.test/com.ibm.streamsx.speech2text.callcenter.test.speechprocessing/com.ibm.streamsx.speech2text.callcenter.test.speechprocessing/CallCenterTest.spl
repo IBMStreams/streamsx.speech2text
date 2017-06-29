@@ -1,0 +1,19 @@
+namespace com.ibm.streamsx.speech2text.callcenter.test.speechprocessing ;
+
+composite CallCenterTest
+{
+	graph
+		() as PacketSimulation = PacketSimulator()
+		{
+		}
+
+		() as SpeechProcessingResult = SpeechProcessingResults()
+		{
+		}
+
+}
+
+
+
+
+
