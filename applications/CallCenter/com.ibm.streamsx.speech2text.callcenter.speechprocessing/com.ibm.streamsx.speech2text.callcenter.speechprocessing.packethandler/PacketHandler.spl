@@ -11,6 +11,7 @@
 namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler;  
 
 use com.ibm.streamsx.network.rtp::*; 
+use com.ibm.streamsx.speech2text.callcenter.types::*;
 
 composite PacketHandler
 {    
@@ -24,22 +25,7 @@ composite PacketHandler
     
 
 	type 
-
-    PacketType2 =
-        uint64 packetsReceived,             // total number of packet received, as of last metrics interval
-        uint64 packetsDropped,              // total number of packet dropped, as of last metrics interval
-        uint64 packetsProcessed,            // total number of packets processed by operator, so far
-        rstring ipSrcAddr,
-        uint32 captureSeconds,
-        uint8 IP_PROTOCOL,                  // IP protocol: 0x01==1 for ICMP, 0x6==6 for TCP, 0x11==17 for UDP
-        uint16 IP_DST_PORT,
-//        uint32 PACKET_LENGTH,               // original length of packet (not necessarily all captured)
-        uint32 PAYLOAD_LENGTH,              // length of packet payload, following all network headers
-//        blob PACKET_DATA,                   // contents of packet captured, including network headers (not necessarily complete)
-        blob PAYLOAD_DATA;                  // contents of packet payload, following all network headers
-
-
-		PacketType = rstring ipSrc_addr ,
+		ReducedPacket = rstring ipSrc_addr ,
                              uint16 dstPort, // destination port 
                              uint8  protocol,
                              uint32 captureSeconds,    
@@ -50,7 +36,7 @@ composite PacketHandler
  
   
 		RtpPacket = rstring ipSrc_addr, uint32 ssrc, uint32 ts, uint32 captureSeconds,  uint16 seq, uint32 payloadLength, blob payload ;
-		payload = tuple<rstring id, rstring channel_id,  uint32 ssrc, uint32 ts, uint32 captureSeconds, uint16 seq,  int32 samples, blob speech> ;  
+//		payload = tuple<rstring id, rstring channel_id,  uint32 ssrc, uint32 ts, uint32 captureSeconds, uint16 seq,  int32 samples, blob speech> ;  
 
  
         SSRC_data   = uint32 ts,uint16 seq;
@@ -62,7 +48,7 @@ composite PacketHandler
 
 
 
-        stream<PacketType2> PacketStreamTCP1 = TCPSource()
+        stream<PacketType> PacketStreamTCP1 = TCPSource()
         {
           param
            role    : client;
@@ -76,13 +62,13 @@ composite PacketHandler
  
 
 
-        stream<PacketType> PacketStream  as Out = Functor(PacketStreamTCP1) 
+        stream<ReducedPacket> PacketStream  as Out = Functor(PacketStreamTCP1) 
        { 
                    output Out : ipSrc_addr = ipSrcAddr, dstPort = IP_DST_PORT, protocol = IP_PROTOCOL, captureSeconds = captureSeconds, netflowMessage = PAYLOAD_DATA, payloadLength = PAYLOAD_LENGTH;
                 }   
 
 
-		stream<PacketType> RtpFiltered = RtpFilter(PacketStream)
+		stream<ReducedPacket> RtpFiltered = RtpFilter(PacketStream)
 		{
 		} 
 

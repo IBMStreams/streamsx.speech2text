@@ -15,11 +15,10 @@
         <parameter defaultValue="getSubmissionTimeValue(&quot;controlDiagnostics&quot;)" metaType="Expression" name="controlDiagnostics" optional="true" type="&lt;rstring>"/>
         <parameter defaultValue="getSubmissionTimeValue(&quot;utteranceDirectory&quot;)" metaType="Expression" name="utteranceDirectory" optional="true" type="&lt;rstring>"/>
       </compositeOp>
-      <compositeOp column="11" line="8" name="PacketSimulator" potentialMain="true" uriIndex="2">
+      <compositeOp column="11" line="9" name="PacketSimulator" potentialMain="true" uriIndex="2">
         <parameter defaultValue="getSubmissionTimeValue(&quot;connHost&quot;)" metaType="Expression" name="connHost" optional="true" type="&lt;rstring>"/>
         <parameter defaultValue="(uint32)getSubmissionTimeValue(&quot;connPort&quot;)" metaType="Expression" name="connPort" optional="true" type="&lt;uint32>"/>
         <parameter defaultValue="getSubmissionTimeValue(&quot;pcapFileDir&quot;)" metaType="Expression" name="PcapFileDir" optional="true" type="&lt;rstring>"/>
-        <type column="6" line="15" name="PacketType" type="uint64 packetsReceived, uint64 packetsDropped, uint64 packetsProcessed, rstring ipSrcAddr, uint32 captureSeconds, uint8 IP_PROTOCOL, uint16 IP_DST_PORT, uint32 PAYLOAD_LENGTH, blob PAYLOAD_DATA" uriIndex="2"/>
       </compositeOp>
       <compositeOp column="11" line="3" name="CallCenterTest" potentialMain="true" uriIndex="3"/>
     </namespace>

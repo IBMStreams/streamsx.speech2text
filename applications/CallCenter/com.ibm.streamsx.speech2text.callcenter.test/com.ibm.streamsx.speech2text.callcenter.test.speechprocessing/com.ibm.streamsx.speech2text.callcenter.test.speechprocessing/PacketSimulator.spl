@@ -4,6 +4,7 @@ use com.ibm.streamsx.network.ipv4::* ;
 use com.ibm.streamsx.network.ipv6::* ;
 use com.ibm.streamsx.network.source::* ;
 use com.ibm.streamsx.network.parse::* ;
+use com.ibm.streamsx.speech2text.callcenter.types::*;
 
 composite PacketSimulator
 {
@@ -11,17 +12,6 @@ composite PacketSimulator
 		expression<rstring> $connHost     : getSubmissionTimeValue("connHost");
 	       	expression<uint32>  $connPort     : (uint32) getSubmissionTimeValue("connPort");
        		expression<rstring> $PcapFileDir : getSubmissionTimeValue("pcapFileDir");
-	type
-	    PacketType =
-	        uint64 packetsReceived,             // total number of packet received, as of last metrics interval
-	        uint64 packetsDropped,              // total number of packet dropped, as of last metrics interval
-	        uint64 packetsProcessed,            // total number of packets processed by operator, so far 
-	        rstring ipSrcAddr,
-	        uint32 captureSeconds, 
-	        uint8 IP_PROTOCOL,                  // IP protocol: 0x01==1 for ICMP, 0x6==6 for TCP, 0x11==17 for UDP
-	        uint16 IP_DST_PORT,
-	        uint32 PAYLOAD_LENGTH,              // length of packet payload, following all network headers
-	        blob PAYLOAD_DATA;                  // contents of packet payload, following all network headers
 	graph
 		
         stream<rstring filename> TestFile = DirectoryScan()

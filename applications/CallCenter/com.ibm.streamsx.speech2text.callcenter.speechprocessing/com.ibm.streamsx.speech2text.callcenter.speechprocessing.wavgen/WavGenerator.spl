@@ -1,5 +1,7 @@
 namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.wavgen ;
 
+use com.ibm.streamsx.speech2text.callcenter.types::*;
+
 composite WavGenerator
 {
 	param
@@ -19,9 +21,7 @@ composite WavGenerator
 		expression<float64> $scheduledActionPeriod :(float64)
 			getSubmissionTimeValue("scheduledActionPeriod", "1.0") ;
     	expression<int32> $parallelWidth :(int32) getSubmissionTimeValue("parallel", "1");
-
-	type
-		payload = tuple<rstring id, rstring channel_id,  uint32 ssrc, uint32 ts, uint32 captureSeconds, uint16 seq,  int32 samples, blob speech> ;  
+ 
 
 	graph
 

@@ -40,7 +40,7 @@ JSI = $(STREAMS_INSTALL)
 all: BuildConfig
 
 BuildConfig:
-	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)
+	$(SPLC) $(SPLC_FLAGS) -t $(STREAMS_SPLPATH):../com.ibm.streamsx.speech2text.callcenter.types -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)
 
 clean: 
 	$(SPLC) $(SPLC_FLAGS) -C -M $(SPL_MAIN_COMPOSITE)
