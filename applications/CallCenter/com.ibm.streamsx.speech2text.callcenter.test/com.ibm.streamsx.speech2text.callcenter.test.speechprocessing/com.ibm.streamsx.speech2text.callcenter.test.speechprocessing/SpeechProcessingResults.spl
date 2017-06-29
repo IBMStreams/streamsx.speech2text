@@ -10,6 +10,14 @@ composite SpeechProcessingResults
 		expression<rstring> $controlDiagnostics  : getSubmissionTimeValue("controlDiagnostics");
 		expression<rstring> $utteranceDirectory  : getSubmissionTimeValue("utteranceDirectory");
 	graph
+	
+		/*
+		 * When testing here, remember that you are dependent on the 
+		 * flush of the TcpSink operator coming out of the "DataCenterSink" 
+		 * operator. It's possible that if you don't shut things down in the right order,
+		 * you will miss the buffered tuples that haven't been flushed. 
+		 * Shutting down the DataCenterSink operator first, should solve this problem. 
+		 */
 		stream<Utterance> UtterancesStream = TCPSource()
         {
           param
@@ -22,8 +30,7 @@ composite SpeechProcessingResults
         () as UtteranceSink = FileSink(UtterancesStream)
         {
         	param
-        		file : $utteranceDirectory + "/utteranceResults.csv"; 
-        		flush : 1u; 
+        		file : $utteranceDirectory + "/utteranceResults.csv";
         }
         
 }

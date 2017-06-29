@@ -1,0 +1,222 @@
+/*******************************************************************************
+ * Copyright (C) 2016, International Business Machines Corporation
+ * All Rights Reserved
+ *******************************************************************************/
+// Perl Arguments in effect for mixed-mode processing
+// Argument count: 2
+// $ARGV[0]:1
+// $ARGV[1]:3
+
+
+namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.watsons2t;  
+  
+use com.ibm.streams.speech2text.watson::*; 
+use com.ibm.streamsx.speech2text.callcenter.types::*;
+
+
+type bestUtterance = tuple<rstring id, rstring channel_id
+	, float64 utteranceStartTime, float64 utteranceEndTime
+	,  uint32 captureSeconds,  int32 utteranceNumber
+	, rstring utterance, float64 utteranceConfidence
+	, list<float64> utteranceTokenConfidences
+	, list<int32> utteranceSpeakers
+	, list<rstring> nBestHypotheses> ;
+
+type  Utterance_File  = tuple<rstring ipaddress, rstring startingTime
+	, rstring callCenter, int32 utteranceNumber
+	,  float64 utteranceStartTime, float64 utteranceEndTime
+	, uint32 captureSeconds,  rstring role
+	, rstring utterance, int32 speakerId>;
+
+
+composite WatsonSpeech2Text
+{    
+      param  
+        expression<rstring> $paramsetFile   : getSubmissionTimeValue("paramsetFile");
+        expression<rstring> $packageFile   : getSubmissionTimeValue("packageFile");
+         expression<rstring> $utterances   : getSubmissionTimeValue("utterances");
+         expression<rstring> $diagnostics  : getSubmissionTimeValue("diagnostics");
+
+         expression<rstring> $callCenter   : getSubmissionTimeValue("callCenter");
+   
+
+	type 
+
+    PacketType2 =
+        uint64 packetsReceived,             // total number of packet received, as of last metrics interval
+        uint64 packetsDropped,              // total number of packet dropped, as of last metrics interval
+        uint64 packetsProcessed,            // total number of packets processed by operator, so far
+        rstring ipSrcAddr,
+        uint32 captureSeconds,
+        uint8 IP_PROTOCOL,                  // IP protocol: 0x01==1 for ICMP, 0x6==6 for TCP, 0x11==17 for UDP
+        uint16 IP_DST_PORT,
+        uint32 PACKET_LENGTH,               // original length of packet (not necessarily all captured)
+        uint32 PAYLOAD_LENGTH,              // length of packet payload, following all network headers
+        blob PACKET_DATA,                   // contents of packet captured, including network headers (not necessarily complete)
+        blob PAYLOAD_DATA;                  // contents of packet payload, following all network headers
+
+
+		PacketType = rstring ipSrc_addr ,
+                             uint16 dstPort, // destination port 
+                             uint8  protocol,
+                             uint32 captureSeconds,    
+
+		blob netflowMessage, // the Netflow message from a packet, excluding all network headers
+		uint32 payloadLength ; // payload length in bytes 
+
+ 
+  
+		RtpPacket = rstring ipSrc_addr, uint32 ssrc, uint32 ts, uint32 captureSeconds,  uint16 seq, uint32 payloadLength, blob payload ;
+		payload = tuple<rstring id, rstring channel_id,  uint32 ssrc, uint32 ts, uint32 captureSeconds,  int32 samples, blob speech> ;  
+
+      graph
+
+
+
+
+
+
+// JMS - seperate out into multiple inmport and export jobs.... 
+
+
+             
+
+             stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,   blob speech, int32 samples, int32 jobId, uint32 hostId> Imported_Utterances1 = Import() {
+              param
+                  applicationName : "com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler::PacketHandler";
+                  streamId : "Import_Utterances1" ;
+           }
+
+
+             stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,  blob speech, int32 samples, int32 jobId, uint32 hostId> Imported2_Utterances1 = Functor(Imported_Utterances1) {
+           }
+
+
+                @parallel(width = 3  , partitionBy = [ { port = Imported2_Utterances1,  attributes = [jobId] } ])
+                (
+                   stream<bestUtterance> Utterances1;
+                   stream<rstring log> Diagnostics1
+                 ) = SpeechToText(Imported2_Utterances1)
+                {  
+                   param 
+                            paramsetFile : $paramsetFile;
+                            packageFile  : $packageFile; 
+                }
+
+/*
+
+                stream<bestUtterance> Filtered_Utterances1  = Filter(Utterances1)
+                {
+                      param filter : ( channel_id == "0" | channel_id == "1" ) ;
+
+                }  
+
+*/ 
+
+ 
+               (
+                stream<Utterance> Utterance_Data1 ;
+                stream<Utterance_File> Utterance_File1 )
+                  = Custom(Utterances1)
+                { 
+                   logic
+                       onTuple Utterances1 :
+                      { 
+                           list<rstring> tokens = tokenize(id,"_",true);
+						if (length(channel_id) > 0){
+	                         // mutable rstring tempUtterance = utterance;
+	                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, 
+	                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, 
+	                        	captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, 
+	                        	speakerId = (int32)channel_id, callCenter = $callCenter, 
+	                        	utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences,
+	                        	utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses }  , Utterance_Data1  ); 
+	                        if (size(tokens) > 1){
+		                        submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
+		                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , Utterance_File1  );
+		                    } 
+						} else {
+							printStringLn("Channel_id empty: " + (rstring) Utterances1); 
+						}
+
+                      }
+                }
+
+
+               // jmsjms : This export needs to eventually go away and be replaced with a messging system 
+
+		() as ExportFileOutput1 = Export(Utterance_Data1)
+                {
+                        param
+                      streamId  : "Utterance_Data1";
+                }
+             
+
+                () as FileOutput1  = FileSink(Utterance_File1 )
+                {
+                        param
+                                file: $utterances + "outUtterances1_{localtime:%m%d%y}_{id}.csv";
+                                format : csv ;
+                                closeMode : time;
+                                timePerFile : 86000.0f;
+                                flush : 10u;
+
+                } 
+ 
+		() as FileDiagnostics1  = FileSink(Diagnostics1 )
+                {
+                        param 
+                               file:   $diagnostics + "Diagnostics1_{localtime:%m%d%y}_{id}.csv";
+                               format : csv ;
+                               closeMode : time;
+                               timePerFile : 86000.0f;
+                               flush : 10u;
+                }   
+
+
+           config
+            hostPool : P1=createPool({size=1u, tags=[""]},Sys.Shared);
+            placement  : host(P1);
+            restartable : false; 
+}  
+
+
+
+composite SpeechToText(input inp ; output Utterances, Debug)
+{
+   param 
+ 
+   expression <rstring> $paramsetFile;
+   expression <rstring> $packageFile;
+
+        graph
+                (stream<bestUtterance> Utterances; stream<rstring log> Debug) = WatsonS2T(inp)
+                {
+                        param
+                                watsonConfigFile :  $paramsetFile;
+				 				watsonModelFile  :  $packageFile;
+				                resetOnIdChange : true;  
+			           output 
+			           		Utterances :     
+			           					 utteranceStartTime = getUtteranceStartTime(),  
+                                                                         utteranceEndTime   = getUtteranceEndTime(),
+			           					 utteranceNumber = getUtteranceNumber(),
+			           					 utterance = getUtteranceText(),
+			           					 utteranceConfidence = getUtteranceConfidence(),
+			           					 utteranceTokenConfidences = getUtteranceWordConfidences(),
+			           					 utteranceSpeakers = getUtteranceSpeakers(), 
+			           					 nBestHypotheses = getNBestHypotheses();
+			           		Debug : 
+			           				log = getDiagnosticsMessage(); 
+		                config
+		                     threadedPort : queue(inp, Sys.DropLast , 10000);
+		                     placement : partitionExlocation("WatsonS2T");
+
+                }
+
+
+
+}
+
+
+
