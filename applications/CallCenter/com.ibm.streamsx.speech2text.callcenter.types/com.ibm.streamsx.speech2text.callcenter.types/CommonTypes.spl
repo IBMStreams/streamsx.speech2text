@@ -20,9 +20,9 @@ type  Utterance	=
 		int32 speakerId,
         rstring callCenter,
         float64 utteranceConfidence,
-        list<float64>  utteranceTokenConfidences,
+        list<float64>  utteranceTokenConfidences/*,
         list<int32> utteranceSpeakers,
-		list<rstring> nBestHypotheses> ;
+		list<rstring> nBestHypotheses*/> ;
 								
 type PacketType =
         uint64 packetsReceived,             // total number of packet received, as of last metrics interval

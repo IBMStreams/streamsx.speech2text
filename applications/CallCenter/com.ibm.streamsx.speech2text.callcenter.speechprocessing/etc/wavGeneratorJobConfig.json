@@ -1,0 +1,12 @@
+{
+	"jobConfigOverlays": [{
+		"configInstructions": {
+			"convertTagSet": [{
+				
+					"originalTagSet": ["wavgen"],
+					"targetTagSet": ["setup"]
+				
+			}]
+		}
+	}]
+}
