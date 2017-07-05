@@ -9,29 +9,32 @@ SPL_MAIN_COMPOSITE_WATSON   = com.ibm.streamsx.speech2text.callcenter.speechproc
 SPL_MAIN_COMPOSITE_WAV      = com.ibm.streamsx.speech2text.callcenter.speechprocessing.wavgen::WavGenerator
 SPL_DATA_DIR ?= ./data
 CALLCENTER_TYPES_TOOLKIT=../com.ibm.streamsx.speech2text.callcenter.types
-SPL_CMD_ARGS ?= 1 3 -t $(STREAMS_STUDIO_SPL_PATH):$(STREAMS_SPLPATH):$(CALLCENTER_TYPES_TOOLKIT)
+SPEECH2TEXT_HELPER_TOOLKIT=../../../com.ibm.streamsx.speech2text/
+SPL_CMD_ARGS ?= -t $(STREAMS_STUDIO_SPL_PATH):$(STREAMS_SPLPATH):$(CALLCENTER_TYPES_TOOLKIT):$(SPEECH2TEXT_HELPER_TOOLKIT)
 BIN_LOC=impl/java/bin
 JSI = $(STREAMS_INSTALL)
-SETUPHOST=setup
-HOST1=watson1
 
-all: packethandler datacentersink watson1 wavgenerator
+all: packethandler datacentersink watson wavgenerator
 $(BIN_LOC):
 	 mkdir -p $(BIN_LOC)
+
 packethandler: packethandler_
 packethandler_:
-	 export jobNumber=1; export jobCount=3; export jobHost=setup; ${SPLC} $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)  --output-directory output/packethandler
+	 ${SPLC} $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)  --output-directory output/packethandler
+
 datacentersink: datacentersink_
 datacentersink_:
-	 export jobNumber=1; export jobCount=3; export jobHost=setup; ${SPLC} $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_OUTDATA) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/datacentersink
-watson1: watson_1
-watson_1:
-	 export jobNumber=1; export jobCount=3; export jobHost=watson1; $(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_WATSON)  --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/watsonspeech2text1
+	 ${SPLC} $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_OUTDATA) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/datacentersink
+
+watson: watson_
+watson_:
+	 $(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_WATSON)  --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/watsonspeech2text
 
 wavgenerator: wavgen
 wavgen:
-	$(STREAMS_INSTALL)/java/bin/javac -cp $(STREAMS_INSTALL)/lib/com.ibm.streams.operator.jar:impl/java/lib/* impl/java/src/com/ibm/streamsx/speech2text/speechprocessing/callcenter/wavgen/*.java -d impl/java/bin/ 
-	export jobNumber=1; export jobCount=3; $(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_WAV) -t ../../../com.ibm.streamsx.speech2text/ --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/wavgen
+	mkdir -p impl/java/bin/
+	$(STREAMS_INSTALL)/java/bin/javac -cp $(STREAMS_INSTALL)/lib/com.ibm.streams.operator.jar:impl/java/lib/* impl/java/src/com/ibm/streamsx/speech2text/callcenter/speechprocessing/wavgen/*.java -d impl/java/bin/ 
+	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_WAV) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/wavgen
 
 clean:
 	  rm -rf $(BIN_LOC)/*
