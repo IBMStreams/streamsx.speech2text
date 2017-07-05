@@ -12,13 +12,16 @@
         <parameter defaultValue="(float64)getSubmissionTimeValue(&quot;metricsInterval&quot;, &quot;1.0&quot;)" metaType="Expression" name="metricsInterval" optional="true" type="&lt;float64>"/>
         <parameter defaultValue="(float64)getSubmissionTimeValue(&quot;timeoutInterval&quot;, &quot;120.0&quot;)" metaType="Expression" name="timeoutInterval" optional="true" type="&lt;float64>"/>
         <parameter defaultValue="getSubmissionTimeValue(&quot;outfile&quot;)" metaType="Expression" name="outfile" optional="true" type="&lt;rstring>"/>
-        <parameter defaultValue="getSubmissionTimeValue(&quot;connHost&quot;)" metaType="Expression" name="connHost" optional="true" type="&lt;rstring>"/>
         <parameter defaultValue="(uint32)getSubmissionTimeValue(&quot;connPort&quot;)" metaType="Expression" name="connPort" optional="true" type="&lt;uint32>"/>
       </compositeOp>
     </namespace>
     <dependency>
       <common:name>com.ibm.streamsx.network</common:name>
       <common:version>[2.8.5,4.0.0)</common:version>
+    </dependency>
+    <dependency>
+      <common:name>com.ibm.streamsx.speech2text.callcenter.types</common:name>
+      <common:version>[1.0.0,2.0.0)</common:version>
     </dependency>
     <sabFiles>
       <ti:include path="toolkit.xml" root="toolkitDir"/>

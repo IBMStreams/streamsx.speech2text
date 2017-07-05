@@ -2,41 +2,17 @@
  * Copyright (C) 2016, International Business Machines Corporation
  * All Rights Reserved
  *******************************************************************************/
-// Perl Arguments in effect for mixed-mode processing
-// Argument count: 2
-// $ARGV[0]:1
-// $ARGV[1]:3
-
-
-
- 
-
 namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.datacentersink ;
 
+use com.ibm.streamsx.speech2text.callcenter.types::*; 
 
 composite DataCenterSink
 {	 
     param  
         expression<rstring> $connHost    : getSubmissionTimeValue("connHost");
         expression<uint32> $connPort     : (uint32) getSubmissionTimeValue("connPort");
-
-
-	type 
-		
-	    Utterance			=	tuple<rstring callId, 
-		    						int32 utteranceNumber,
-		    						float64 utteranceStartTime,  
-                                    float64 utteranceEndTime,
-                                    uint32 captureSeconds, 
-                                    rstring role,
-		   							rstring utterance,
-		   							int32 speakerId,
-                                    rstring callCenter,
-                                    float64 utteranceConfidence,
-                                    list<float64>  utteranceTokenConfidences,
-                                    list<int32> utteranceSpeakers,
-									list<rstring> nBestHypotheses> ;
-	   	
+        expression<int32> $numOfWatsonJobs : (int32) getSubmissionTimeValue("numOfWatsonJobs"); 	
+        expression<rstring> $systemTag : "setup"; 
 			
 	graph
 				
@@ -46,73 +22,35 @@ composite DataCenterSink
 		 * data a from text file
 		 */
 		
-
-           stream<Utterance> Import_Utterances_1 = Import() { 
+           stream<Utterance> ImportUtterancesFromWatson = Import() { 
               param 
-                  applicationName : "com.ibm.streamsx.speech2text.callcenter.speechprocessing.watsons2t::WatsonSpeech2Text"; 
-                  streamId : "Utterance_Data1";
+					subscription : topic == "Utterance_Data"; 
            }   
 
 
-           stream<Utterance> Import_Utterances_3 = Import() { 
-              param 
-                  applicationName : "com.ibm.streamsx.speech2text.callcenter.speechprocessing.watsons2t::WatsonSpeech2Text"; 
-                  streamId : "Utterance_Data3";
-           }   
+ 			stream<Utterance> Import_Utterances = Custom(ImportUtterancesFromWatson)
+             {
+                 logic
+                   onTuple ImportUtterancesFromWatson :
+                  {
+                    submit( ImportUtterancesFromWatson , Import_Utterances );
+                  }
+             }
 
-           stream<Utterance> Import_Utterances_2 = Import() { 
-              param 
-                  applicationName : "com.ibm.streamsx.speech2text.callcenter.speechprocessing.watsons2t::WatsonSpeech2Text"; 
-                  streamId : "Utterance_Data2";
-           }   
+		   () as TcpSink_Import_UtterancesStream = TCPSink(Import_Utterances)
+		    {
+		      param
+		          role  : server;
+		          port  : $connPort;
+		          format : csv;
+		      config
+		         threadedPort : queue(Import_Utterances,Sys.Wait, 1000000);
+		
+		
+		    }
 
-           stream<Utterance> Import_Utterances_4 = Import() { 
-              param 
-                  applicationName : "com.ibm.streamsx.speech2text.callcenter.speechprocessing.watsons2t::WatsonSpeech2Text"; 
-                  streamId : "Utterance_Data4";
-           }   
-
-           stream<Utterance> Import_Utterances_5 = Import() { 
-              param 
-                  applicationName : "com.ibm.streamsx.speech2text.callcenter.speechprocessing.watsons2t::WatsonSpeech2Text"; 
-                  streamId : "Utterance_Data5";
-           }   
-
- stream<Utterance> Import_Utterances = Custom(Import_Utterances_1,Import_Utterances_2,Import_Utterances_3,Import_Utterances_4,Import_Utterances_5)
-                 {
-                     logic
-                       onTuple Import_Utterances_1 :
-                      {
-                        submit( Import_Utterances_1 , Import_Utterances );
-                      }
-                 }
-
-//	() as TestSink = FileSink(Import_Utterances){
-//            param
-//                    file: "/home/streamsadmin/data/test.dat";
-//                    format : csv ;
-//                    closeMode : time;
-//                    timePerFile : 86000.0f;
-//                    flush : 10u;
-//	}
-
-   () as TcpSink_Import_UtterancesStream = TCPSink(Import_Utterances)
-    {
-      param
-          role  : server;
-          port  : $connPort;
-         //  name  : $connHost;
-          format : csv;
-      config
-         threadedPort : queue(Import_Utterances,Sys.Wait, 1000000);
-
-
-    }
-
-config
-            hostPool : P1=createPool({size=1u, tags=[""]},Sys.Shared);
+	config
+			// tag is overridden using job config
+            hostPool : P1=createPool({tags=["dataCenterSink"]},Sys.Shared);
             placement  : host(P1); 
-            restartable : false;
-
-
 }

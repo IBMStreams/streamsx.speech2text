@@ -7,9 +7,10 @@
       <uri index="1" value="com.ibm.streamsx.speech2text.callcenter.types/CommonTypes.spl"/>
     </uriTable>
     <namespace name="com.ibm.streamsx.speech2text.callcenter.types">
-      <type column="6" line="13" name="Utterance" static="true" type="tuple&lt;rstring callId, int32 utteranceNumber, float64 utteranceStartTime, float64 utteranceEndTime, uint32 captureSeconds, rstring role, rstring utterance, int32 speakerId, rstring callCenter, float64 utteranceConfidence, list&lt;float64> utteranceTokenConfidences, list&lt;int32> utteranceSpeakers, list&lt;rstring> nBestHypotheses>" uriIndex="1"/>
-      <type column="5" line="27" name="PacketType" static="true" type="uint64 packetsReceived, uint64 packetsDropped, uint64 packetsProcessed, rstring ipSrcAddr, uint32 captureSeconds, uint8 IP_PROTOCOL, uint16 IP_DST_PORT, uint32 PAYLOAD_LENGTH, blob PAYLOAD_DATA" uriIndex="1"/>
-      <type column="3" line="42" name="payload" static="true" type="tuple&lt;rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds, uint16 seq, int32 samples, blob speech>" uriIndex="1"/>
+      <type column="7" line="12" name="Utterance" static="true" type="tuple&lt;rstring callId, int32 utteranceNumber, float64 utteranceStartTime, float64 utteranceEndTime, uint32 captureSeconds, rstring role, rstring utterance, int32 speakerId, rstring callCenter, float64 utteranceConfidence, list&lt;float64> utteranceTokenConfidences, list&lt;int32> utteranceSpeakers, list&lt;rstring> nBestHypotheses>" uriIndex="1"/>
+      <type column="6" line="27" name="PacketType" static="true" type="uint64 packetsReceived, uint64 packetsDropped, uint64 packetsProcessed, rstring ipSrcAddr, uint32 captureSeconds, uint8 IP_PROTOCOL, uint16 IP_DST_PORT, uint32 PAYLOAD_LENGTH, blob PAYLOAD_DATA" uriIndex="1"/>
+      <type column="6" line="39" name="payload" static="true" type="tuple&lt;rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds, uint16 seq, int32 samples, blob speech>" uriIndex="1"/>
+      <type column="6" line="49" name="AudioPacket" static="true" type="rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds, blob speech, int32 samples, int32 jobId, uint32 hostId" uriIndex="1"/>
     </namespace>
     <dependency>
       <common:name>com.ibm.streamsx.network</common:name>
