@@ -1,0 +1,37 @@
+namespace com.ibm.streamsx.speech2text.subnetipfilter ;
+
+/*
+ * @param subnets Type rstring, example: "10.381.49.0/24,10.381.53.0/24,10.381.11.0/24,10.381.54.0/24,10.381.55.0/24,10.381.12.0/24"
+ * @input In Stream specifying ipSrc_addr attribute as rstring ip address and uint16 dstPort 
+ * @output Out Stream - Attribute "value" of the type being retrieved from DPS is required. Stream contains attributes that match input attributes plus the value attribute. 
+ * 
+ */
+public composite SubnetIPFilter(input In0 ; output Out0)
+{
+	param
+	// Example format: "10.381.49.0/24,10.381.53.0/24,10.381.11.0/24,10.381.54.0/24,10.381.55.0/24,10.381.12.0/24"
+		expression<rstring> $subnets : "" ;
+	graph
+		(stream<In0> Filter0 ; stream<In0> Filter1) as
+			Filter_2 = Filter(In0)
+		{
+			param
+				filter : $subnets != ""  ;
+		}
+		
+		stream<In0> SubNetIPFilterHelpersOut =
+			SubNetIPFilterHelpers(Filter0)
+		{
+			param
+				subnets : $subnets ;
+		}
+
+		(stream<In0> Out0) as Functor_3 = Functor(SubNetIPFilterHelpersOut,
+			Filter1)
+		{
+		}
+	config
+		placement : partitionColocation("SubnetFilter");
+}
+
+

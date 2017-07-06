@@ -1,0 +1,11 @@
+*.class
+*.jar
+*.classpath
+*.namespace
+bk_*
+*$StreamsModel.java
+._src
+output/
+bin/
+.toolkitList
+*~
