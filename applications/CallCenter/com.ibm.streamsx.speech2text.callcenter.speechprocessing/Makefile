@@ -32,7 +32,6 @@ watson_:
 
 wavgenerator: wavgen
 wavgen:
-	mkdir -p impl/java/bin/
 	$(STREAMS_INSTALL)/java/bin/javac -cp $(STREAMS_INSTALL)/lib/com.ibm.streams.operator.jar:impl/java/lib/* impl/java/src/com/ibm/streamsx/speech2text/callcenter/speechprocessing/wavgen/*.java -d impl/java/bin/ 
 	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_WAV) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/wavgen
 
