@@ -20,7 +20,7 @@ public composite SubnetIPFilter(input In0 ; output Out0)
 		}
 		
 		stream<In0> SubNetIPFilterHelpersOut =
-			SubNetIPFilterHelpers(Filter0)
+			SubnetIPFilterHelpers(Filter0)
 		{
 			param
 				subnets : $subnets ;
