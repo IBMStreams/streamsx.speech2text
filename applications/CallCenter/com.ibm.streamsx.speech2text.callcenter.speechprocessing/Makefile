@@ -9,8 +9,7 @@ SPL_MAIN_COMPOSITE_WATSON   = com.ibm.streamsx.speech2text.callcenter.speechproc
 SPL_MAIN_COMPOSITE_WAV      = com.ibm.streamsx.speech2text.callcenter.speechprocessing.wavgen::WavGenerator
 SPL_DATA_DIR ?= ./data
 CALLCENTER_TYPES_TOOLKIT=../com.ibm.streamsx.speech2text.callcenter.types
-SPEECH2TEXT_HELPER_TOOLKIT=../../../com.ibm.streamsx.speech2text/
-SPL_CMD_ARGS ?= -t $(STREAMS_STUDIO_SPL_PATH):$(STREAMS_SPLPATH):$(CALLCENTER_TYPES_TOOLKIT):$(SPEECH2TEXT_HELPER_TOOLKIT)
+SPL_CMD_ARGS ?= -t $(STREAMS_STUDIO_SPL_PATH):$(STREAMS_SPLPATH):$(CALLCENTER_TYPES_TOOLKIT)
 BIN_LOC=impl/java/bin
 JSI = $(STREAMS_INSTALL)
 
@@ -33,7 +32,7 @@ watson_:
 wavgenerator: wavgen
 wavgen:
 	$(STREAMS_INSTALL)/java/bin/javac -cp $(STREAMS_INSTALL)/lib/com.ibm.streams.operator.jar:impl/java/lib/* impl/java/src/com/ibm/streamsx/speech2text/callcenter/speechprocessing/wavgen/*.java -d impl/java/bin/ 
-	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_WAV) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/wavgen
+	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE_WAV) -t ../../../com.ibm.streamsx.speech2text/ --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS) --output-directory output/wavgen
 
 clean:
 	  rm -rf $(BIN_LOC)/*

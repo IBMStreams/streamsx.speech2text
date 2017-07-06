@@ -42,12 +42,6 @@ To compile this application run
 
 Submit the application - Use the submitJob.sh script for ease of deployment, or see the submit_example.sh for an example of submitjob commands.
 
-Before submitting:
-1. Ensure you have set the STREAMS_CALLCENTER_DATA environment variable.
-	export STREAMS_CALLCENTER_DATA=<location to write data to>
-2. Make sure the directories are created. You can use the mkDefaultDirectories.sh script. 
-3. Update the self-documenting etc/properties.cfg file to point to the correct Watson model/config location
-
 Example commands and descriptions:
  
  Submit packethandler,watson1, watson2, watson3, and datacentersink -- watson1 with 1 speech2text engines running, watson2 with 2 speech2text engines running,
@@ -75,9 +69,3 @@ Example commands and descriptions:
  Each of the jobs can be placed on a host of your choice by tagging that host with the tag 
  corresponding to the job. The tags can by modified without recompiling by modifying the 
  "targetTagSet" attribute in the etc/<job-name>JobConfig.json file. 
- 
- ## Diarization
- 
- The components needed to incorporate diarization into the Call Center solution have 
- been commented out. These can be uncommented and model changed to point to a model/config
- that support diarization. 
