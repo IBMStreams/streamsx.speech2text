@@ -27,6 +27,7 @@ application requires an installation of FFMPEG on the system being deployed to.
 
 1. Make sure that version 3.0.5 of the com.ibm.streamsx.network toolkit is available in your $STREAMS_SPLPATH, 
 along with the com.ibm.streams.speech2text toolkit. 
+	
 	export STREAMS_SPLPATH=/path/to/network/toolkit:/path/to/speech2text/toolkit:$STREAMS_SPLPATH
 2. Refer to the Configuring your Domain and Instance README at the root of the CallCenter application directory 
 for domain and instance setup. 
