@@ -36,7 +36,7 @@ Where networkInterace :  eth2 is replaced  with the interface to be monitored.
 # Running in Distributed
 
 1. You must have your domain controller registered as a system service. You can do this using the following command (you will need root authority): 
-	`$ sudo -E $STREAMS_INSTALL/bin/streamtool registerdomainhost --zkconnect <zk-connect-string>`
+	- `$ sudo -E $STREAMS_INSTALL/bin/streamtool registerdomainhost --zkconnect <zk-connect-string>`
 2. Set the following properties: 
 	```streamtool setproperty instance.runAsUser=$USER
 	streamtool setproperty instance.canSetPeOSCapabilities=true
