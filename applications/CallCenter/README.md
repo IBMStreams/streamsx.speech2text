@@ -58,9 +58,8 @@ corresponding application directory.
 Here is a basic set of deployment steps: 
 
 1. tar xf CallCenterSubmissionBundle.tgz
-1. export STREAMS_CALLCENTER_DATA=\<location to write data to\> 
+1. export STREAMS_CALLCENTER_DATA=<location to write data to> 
 1. Create the following directories: 
-	```
 	mkdir $STREAMS_CALLCENTER_DATA/packethandler
 	mkdir $STREAMS_CALLCENTER_DATA/watson
 	mkdir $STREAMS_CALLCENTER_DATA/datacentersink
@@ -68,19 +67,18 @@ Here is a basic set of deployment steps:
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeBin
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeWAV
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeToDir
-	```
 	(you can also run com.ibm.streamsx.speech2text.callcenter.speechprocessing/mkDefaultDirectories.sh)
 2. Submit the Network Tap application (for submission in standalone mode, see README in the application):
-	- cd com.ibm.streamsx.speech2text.callcenter.networktap/
-	- streamtool submitjob -P networkInterface=eth1 -P connPort=23146 output/com.ibm.streamsx.speech2text.callcenter.networktap.Main.sab
-	- If you have issues, make sure you're listening to the right network interface. 	 
+	a. cd com.ibm.streamsx.speech2text.callcenter.networktap/
+	b. streamtool submitjob -P networkInterface=eth1 -P connPort=23146 output/com.ibm.streamsx.speech2text.callcenter.networktap.Main.sab
+	If you have issues, make sure you're listening to the right network interface. 	 
 3. Submit the SpeechProcessing Applications
-	- Modify the necessary properties here:  com.ibm.streamsx.speech2text.callcenter.speechprocessing/etc/properties.cfg 
+	a. Modify the necessary properties here:  com.ibm.streamsx.speech2text.callcenter.speechprocessing/etc/properties.cfg 
 	For more details on property modification, see the README in com.ibm.streamsx.speech2text.callcenter.speechprocessing
-	- cd com.ibm.streamsx.speech2text.callcenter.speechprocessing/
-	- ./submitJob.sh --job speechprocessing --numWatsonHosts 4 --watsonEngineCountList [10,10,10,10] # places 10 S2T engines on each Watson host
+	b. cd com.ibm.streamsx.speech2text.callcenter.speechprocessing/
+	c. ./submitJob.sh --job speechprocessing --numWatsonHosts 4 --watsonEngineCountList [10,10,10,10] # places 10 S2T engines on each Watson host
 4. Submit test application
-	- cd com.ibm.streamsx.speech2text.callcenter.test/com.ibm.streamsx.speech2text.callcenter.test.speechprocessing/
-	- Modify the submit_example.sh script to have the parameters you want. You will need a directory with pcap files to replay. 
-	- Run ./submit_example.sh
-5. Validate that data is flowing by checking the output utterance files and the console. Ensure that the line up with the expected audio in the PCAP files. 
+	a. cd com.ibm.streamsx.speech2text.callcenter.test/com.ibm.streamsx.speech2text.callcenter.test.speechprocessing/
+	b. Modify the submitJob.sh script to have the parameters you want. You will need a directory with pcap files to replay. 
+	c. Run ./submitJob.sh
+5. Validate that data is flowing by checking the output utterance files and the console. 
