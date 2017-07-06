@@ -3,7 +3,7 @@
   <info:identity>
     <info:name>CallCenter</info:name>
     <info:description>CallCenter</info:description>
-    <info:version>2.0.0</info:version>
+    <info:version>1.0.0</info:version>
     <info:requiredProductVersion>4.2.0.0</info:requiredProductVersion>
   </info:identity>
   <info:dependencies>
@@ -14,18 +14,6 @@
     <info:toolkit>
       <common:name>com.ibm.streamsx.network</common:name>
       <common:version>[3.0.5,4.0.0)</common:version>
-    </info:toolkit>
-    <info:toolkit>
-      <common:name>com.ibm.streamsx.speech2text.callcenter.types</common:name>
-      <common:version>[1.0.0,2.0.0)</common:version>
-    </info:toolkit>
-    <info:toolkit>
-      <common:name>com.ibm.streamsx.topology</common:name>
-      <common:version>[1.4.4,2.0.0)</common:version>
-    </info:toolkit>
-    <info:toolkit>
-      <common:name>com.ibm.streamsx.speech2text</common:name>
-      <common:version>[1.0.0,2.0.0)</common:version>
     </info:toolkit>
   </info:dependencies>
 </info:toolkitInfoModel>

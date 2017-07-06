@@ -10,9 +10,7 @@ composite CallCenterTest
 		() as SpeechProcessingResult = SpeechProcessingResults()
 		{
 		}
-  config
-            hostPool : P1=createPool({tags=["callcentertest"]},Sys.Shared);
-            placement  : host(P1) , hostColocation("SameHost");  
+
 }
 
 

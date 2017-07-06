@@ -46,13 +46,4 @@ type payload =
 		int32 samples, 
 		blob speech> ; 
 		
-type AudioPacket = 
-	rstring id, 
-	rstring channel_id, 
-	uint32 ssrc, 
-	uint32 ts, 
-	uint32 captureSeconds,   
-	blob speech, 
-	int32 samples, 
-	int32 jobId, 
-	uint32 hostId ; 
+		

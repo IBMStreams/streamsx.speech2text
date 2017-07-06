@@ -33,7 +33,7 @@ ifeq ($(STREAMS_STUDIO_BUILDING), 1)
 endif
 SPL_MAIN_COMPOSITE = com.ibm.streamsx.speech2text.callcenter.networktap::Main
 SPL_DATA_DIR ?= ./data
-SPL_CMD_ARGS ?= 1  1
+SPL_CMD_ARGS ?=  1  1
 
 JSI = $(STREAMS_INSTALL)
 

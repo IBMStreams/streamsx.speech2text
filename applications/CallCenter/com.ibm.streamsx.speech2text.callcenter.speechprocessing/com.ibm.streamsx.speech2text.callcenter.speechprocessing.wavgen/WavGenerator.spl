@@ -57,8 +57,6 @@ composite WavGenerator
 				WAV_LOC    : $WAV_LOC;
 				DELETE_BIN : $DELETE_BIN;
 		}
-  	config
-        hostPool : P1=createPool({tags=["wavgen"]},Sys.Shared);
-        placement  : host(P1) , hostColocation("SameHost");  
+
 }
 
