@@ -1,4 +1,8 @@
+#
+This application taps a network interface and reads packets directly off of the wire. 
 
+
+## Building
 
 1. Make sure that com.ibm.streamsx.network 3.1.0+ with RTP operatorstoolkit is available in your $STREAMS_SPLPATH, 
 available currently at https://github.com/Alex-Cook4/streamsx.network/tree/rtp-dev toolkits
@@ -6,7 +10,7 @@ available currently at https://github.com/Alex-Cook4/streamsx.network/tree/rtp-d
 2. Run make
 	- `$ make`
 
-# Running in Distributed
+## Running in Distributed
 
 1. You must have your domain controller registered as a system service. You can do this using the following command (you will need root authority): 
 	- `$ sudo -E $STREAMS_INSTALL/bin/streamtool registerdomainhost --zkconnect <zk-connect-string>`
@@ -19,7 +23,7 @@ available currently at https://github.com/Alex-Cook4/streamsx.network/tree/rtp-d
 3. Submit the job: 
 	- `streamtool submitjob -P networkInterface=eth1 -P connPort=23146 --jobname NetworkTap output/com.ibm.streamsx.speech2text.callcenter.networktap.Main.sab`
 
-# Running in Standalone
+## Running in Standalone
 
 The executable created above will need the proper permissions to be able to
 read from a network tap ... 
