@@ -102,6 +102,16 @@ else
 	array=( $JOB )
 fi
 
+if [[ $STREAMS_CALLCENTER_DATA == "" ]]
+then
+	echo "Warning: \$STREAMS_CALLCENTER_DATA environment variable not set. Continue? (y/n)";
+	read response;
+	if [[ $response == "n" || $response == "no" ]]
+	then
+		exit
+	fi
+fi
+
 for JOB in "${array[@]}"
 do
 	xbase=${sabmap[$JOB]##*/}

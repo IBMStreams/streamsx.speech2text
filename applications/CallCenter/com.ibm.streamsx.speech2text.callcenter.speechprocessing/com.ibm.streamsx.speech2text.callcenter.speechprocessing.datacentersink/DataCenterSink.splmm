@@ -45,8 +45,6 @@ composite DataCenterSink
 		          format : csv;
 		      config
 		         threadedPort : queue(Import_Utterances,Sys.Wait, 1000000);
-		
-		
 		    }
 
 	config

@@ -1,0 +1,185 @@
+namespace com.ibm.streamsx.speech2text.perf ;
+
+use com.ibm.streams.speech2text.watson::*;
+
+type utterancePayload = tuple<int32 channel, rstring id,
+				rstring utterance, float64 utteranceConfidence,
+				list<int32> utteranceSpeakers> ;
+
+public composite S2T_Perf_composite(input RepeatingDirectoryScan; output PerfSummary , Utterances){
+
+	param
+		expression<rstring> $watsonConfigFile;
+		expression<rstring> $watsonModelFile;
+		expression<boolean> $resetOnIdChange : true;
+		expression<uint32> $blockSize; 
+	type
+			speechPayload = tuple<rstring speech, rstring id> ;
+			rawSpeechPayload = tuple<blob speech, rstring id> ;
+			diagnosticsPayload = tuple<rstring log, rstring id> ;
+	graph	
+		stream<rstring speech> RemoveEngineId = Functor(RepeatingDirectoryScan){}
+	
+		stream<blob speech, rstring id> RAWData = FileSource(RemoveEngineId)
+		{
+			param
+				blockSize : $blockSize ;
+				format : block ;
+			output RAWData : id = FileName(); 
+		}
+		
+		/*
+		 * We need to flush after a window punctuation from
+		 * the filesource (i.e. for an id change) just in case
+		 * we get sent the same filename twice. 
+		 */
+		stream<RAWData> CheckForWindowPunct = Custom(RAWData){
+			logic
+				onTuple RAWData : 
+				{
+					submit(RAWData, CheckForWindowPunct);
+				}
+				onPunct RAWData :
+				{
+					submit({speech = (blob)"", id = "reset"}, CheckForWindowPunct); 
+				}
+			
+		}
+		
+		(stream<utterancePayload> Utterances ; stream<diagnosticsPayload>
+			Diagnostics) = WatsonS2T(CheckForWindowPunct)
+		{
+			param
+				watsonModelFile : $watsonModelFile ;
+				watsonConfigFile : $watsonConfigFile ;
+				resetOnIdChange : $resetOnIdChange ;
+			output 
+           		Utterances :     
+           					 channel = getChannel(), utterance = getUtteranceText(),
+					utteranceConfidence = getUtteranceConfidence(),
+					utteranceSpeakers = getUtteranceSpeakers() ; 
+           		Diagnostics : 
+           				log = getDiagnosticsMessage(); 
+           		config
+           			placement : partitionIsolation; 
+		}
+		
+		stream<rstring perfResult, int32 engineId> PerfSummary = Custom(
+				Diagnostics as inputStream)
+			{
+				logic
+					state :
+					{
+						mutable timestamp lastTimeStamp = getTimestamp() ;
+						mutable int64 tupleCnt = 0 ;
+						mutable rstring perfResult ;
+					}
+
+					onTuple inputStream :
+					{
+						timestamp current = getTimestamp() ;
+						tupleCnt ++ ;
+						float64 seconds = diffAsSecs(current, lastTimeStamp) ;
+						lastTimeStamp = current ;
+						/*
+					 * We only want to perform actions for real processing paths
+					 */
+						if(id != "reset" && id != "Initializer")
+						{
+							perfResult = id + "     " + log + "   Processing Time:" +(rstring)
+								seconds ;
+							printStringLn(perfResult) ;
+							
+							mutable list<rstring> audioTime ;
+							mutable rstring regex = "audio\\sduration:\\s\\d+\\.\\d+" ; //"
+							audioTime = regexMatchPerl(log, regex) ;
+							if(size(audioTime) > 0)
+							{
+								mutable list<rstring> audioT = regexMatchPerl(audioTime [ 0 ],
+									"\\d+\\.\\d+") ; //"
+								mutable float64 audioTimeFloat =(float64) audioT [ 0 ] ;
+								float64 realTimeFactor = audioTimeFloat / seconds ;
+								perfResult = perfResult + " " + "real-time-factor: " +(rstring)
+									realTimeFactor ;
+							}
+
+							submit({ perfResult = perfResult, engineId =(int32) getChannel()
+								},(uint32) 0) ;
+						}
+
+					}
+			}
+
+
+}
+
+public composite RepeatingDirectoryScanComposite(input inp ; output RepeatingDirectoryScan )
+{
+	param
+		expression<int32> $numberOfFilesInDirectory;
+		expression<int32> $repetitions;
+	graph 
+		stream<rstring speech> RepeatingDirectoryScan  = Custom(inp as dirScanFiles)
+		{
+			logic 
+				state : {
+					mutable list<rstring> directoryFiles = [];
+					int32 numberOfFilesToWaitFor = $numberOfFilesInDirectory;
+				}
+				onTuple dirScanFiles : {
+					appendM(directoryFiles, dirScanFiles.speech);
+					printStringLn("Received file: " + dirScanFiles.speech) ;
+					if (size(directoryFiles) == numberOfFilesToWaitFor){ 
+						mutable int32 i = 0; 
+						while (i < $repetitions){
+							for (int32 r in range(directoryFiles)){
+								submit({speech = directoryFiles[r]}, RepeatingDirectoryScan);
+							}
+							i++;
+						}
+						printStringLn("****Done sending files!");
+					}
+				}
+		}
+}
+
+
+public composite LoadBalancerComp(input DirScanIn , CompletionIn ; output BalancedLoadStream )
+{	
+	param
+		expression<int32> $numSpeechEngines; // So that we can send the initial set of audio 
+	graph 
+
+		stream<rstring speech, int32 engineId> BalancedLoadStream  = Custom(DirScanIn as dirScanFiles; CompletionIn)
+		{
+			logic 
+				state : {
+					mutable list<rstring> filesToProcess = [];
+					mutable int32 filesReceived = 0; 
+				}
+				onTuple dirScanFiles : 
+				{
+					filesReceived++;
+					appendM(filesToProcess, dirScanFiles.speech);
+					printStringLn("Received file: " + dirScanFiles.speech) ;
+					if (filesReceived == $numSpeechEngines){
+						for (int32 i in range($numSpeechEngines)){
+							submit({speech = filesToProcess[i], engineId = i}, BalancedLoadStream);
+							printStringLn("Sending " + filesToProcess[i] + " to engine: " + (rstring) i);
+						}
+						removeM(filesToProcess, 0, $numSpeechEngines - 1); 
+					}
+				}
+				onTuple CompletionIn : 
+				{
+					if (size(filesToProcess) > 0){
+						printStringLn("Sending " + filesToProcess[0] + " to engine: " + (rstring) CompletionIn.engineId);
+						submit({speech = filesToProcess[0], engineId = CompletionIn.engineId}, BalancedLoadStream);
+						removeM(filesToProcess, 0);
+						
+					} else {
+						printStringLn("An engine completed but we don't have any more files to send.");
+					}
+				}
+		}
+}

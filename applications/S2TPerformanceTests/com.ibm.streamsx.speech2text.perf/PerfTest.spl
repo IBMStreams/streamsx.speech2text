@@ -1,0 +1,105 @@
+namespace com.ibm.streamsx.speech2text.perf ;
+
+use com.ibm.streams.speech2text.watson::*;
+
+composite PerfTest
+{
+	param
+		expression<rstring> $audioDataDir : getSubmissionTimeValue("audioDirectory", "audio") ;
+		expression<int32> $filesInAudioDir : (int32) getSubmissionTimeValue("numFiles", "5") ;
+		expression<int32> $repetitions : (int32) getSubmissionTimeValue("numRepetitions", "1") ;
+		expression<uint32> $blockSize : (uint32) getSubmissionTimeValue("blockSize" , "200"); 
+		expression<int32> $parallelWidth : (int32) getSubmissionTimeValue("parallelWidth", "10"); 
+		expression<boolean> $writeUtterances : getSubmissionTimeValue("writeUtterancesToFile", "true") == "true"; 
+		expression<rstring> $testName : getSubmissionTimeValue("testName", "default");
+		expression<rstring> $watsonConfigFile : getSubmissionTimeValue("watsonConfigFile"); 
+			// "/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3-8kHz-diarization-error.pset" ;
+		expression<rstring> $watsonModelFile : getSubmissionTimeValue("watsonModelFile");
+			// "/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3.pkg" ;
+	graph
+		stream<rstring speech> RAWFiles = DirectoryScan()
+		{
+			param
+				directory : $audioDataDir ;
+				pattern : "\\.raw$" ;
+		}
+
+		stream<rstring speech> RepeatingDirectoryScan = RepeatingDirectoryScanComposite(RAWFiles as dirScanFiles)
+		{
+			param  
+				numberOfFilesInDirectory: $filesInAudioDir; 
+				repetitions : $repetitions; 
+		}
+		
+		stream<rstring speech, int32 engineId> LoadBalancer = LoadBalancerComp(RepeatingDirectoryScan;S2T_Performance_Comp){
+			param
+				numSpeechEngines : $parallelWidth; 
+		}
+		
+		@parallel(width = $parallelWidth, partitionBy=[{port=LoadBalancer, attributes=[engineId]}])
+		(stream<rstring perfResult, int32 engineId> S2T_Performance_Comp 
+			; stream<utterancePayload> Utterances) as S2T_Composite = S2T_Perf_composite(LoadBalancer){
+			param 
+				watsonConfigFile : $watsonConfigFile; 
+				watsonModelFile : $watsonModelFile;
+				blockSize : $blockSize; 
+				//initDelay : $initDelay;
+		}
+		
+		stream<rstring perfResult, int32 engineId> TestCompletionTracker = Custom(S2T_Performance_Comp){
+			logic 
+				state : 
+				{
+					mutable int32 completedFiles = 0; 
+					int32 totalFiles = $filesInAudioDir * $repetitions; 
+					timestamp testStartTime = getTimestamp();
+				}
+				onTuple S2T_Performance_Comp : 
+				{
+					completedFiles++;
+					
+					timestamp currentTime = getTimestamp(); 
+					int64 testDuration = diffAsSecs(currentTime, testStartTime); 
+					printStringLn("@" + (rstring) testDuration + "s Received " + (rstring) completedFiles + " of " + (rstring) totalFiles + " total files. ");
+					if (completedFiles == totalFiles)
+					{
+						rstring testCompletionMessage = "Test completed in " +  (rstring) testDuration + " s"; 
+						printStringLn(testCompletionMessage);
+						submit({perfResult = testCompletionMessage, engineId = -2}, 0u);
+					} else if (completedFiles > totalFiles)
+					{
+						printStringLn("***This shouldn't be happening!!!");
+						abort();
+					} 
+				}
+		}
+		
+		() as PerfSummaryPrinter = FileSink(S2T_Performance_Comp, TestCompletionTracker)
+		{
+			param
+				file : $testName + "_Performance.txt";
+				flush : 1u; 
+				
+		}
+		
+		stream<Utterances> FilterUtterances = Filter(Utterances)
+		{
+			param
+				filter : $writeUtterances ; 
+		}
+
+		() as FileOutput = FileSink(FilterUtterances)
+		{
+			param
+				file: $testName + "_utterances.txt";
+				format : txt ;
+				// flush : 1u ;     
+		} 
+
+	config
+		restartable : false;
+		placement : hostColocation("PerfHost"); 
+}
+
+
+
