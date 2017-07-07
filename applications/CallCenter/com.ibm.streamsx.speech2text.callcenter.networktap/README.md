@@ -1,4 +1,4 @@
-#
+# Network Tap Application
 This application taps a network interface and reads packets directly off of the wire. 
 
 
