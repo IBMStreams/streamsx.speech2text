@@ -9,7 +9,6 @@ use com.ibm.streamsx.speech2text.callcenter.types::*;
 use com.ibm.streamsx.topology.topic::*; 
 use com.ibm.streamsx.speech2text.subnetipfilter::*; 
 
-
 composite PacketHandler
 {    
      param
@@ -22,6 +21,7 @@ composite PacketHandler
 		expression<int32> $numHosts : (int32) getSubmissionTimeValue("numWatsonHosts");
 		expression <list<uint32>> $jobCountList : (list<uint32>) getSubmissionTimeValue("watsonEngineCountList");
 		expression<rstring> $subnets  : getSubmissionTimeValue("ipSubnets" , ""); 
+
 
 	type 
 		ReducedPacket = 

@@ -87,6 +87,8 @@ composite WatsonSpeech2Text
 						}
 
                       }
+//                      config
+//                      	placement : partitionIsolation; 
                 }
 
 
