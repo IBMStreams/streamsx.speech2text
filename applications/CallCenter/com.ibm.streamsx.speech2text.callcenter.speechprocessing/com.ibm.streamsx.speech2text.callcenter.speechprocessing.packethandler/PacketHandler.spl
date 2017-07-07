@@ -7,6 +7,8 @@ namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler
 use com.ibm.streamsx.network.rtp::*; 
 use com.ibm.streamsx.speech2text.callcenter.types::*;
 use com.ibm.streamsx.topology.topic::*; 
+use com.ibm.streamsx.speech2text.subnetipfilter::*; 
+
 
 
 composite PacketHandler
@@ -19,7 +21,8 @@ composite PacketHandler
        expression<rstring> $controlDiagnostics  : getSubmissionTimeValue("controlDiagnostics");
         expression<int32>  $tupleDebug   : (int32) getSubmissionTimeValue("tupleDebug", "10000000");
 		expression<int32> $numHosts : (int32) getSubmissionTimeValue("numWatsonHosts");
-		expression <list<uint32>> $jobCountList : (list<uint32>) getSubmissionTimeValue("watsonEngineCountList"); 
+		expression <list<uint32>> $jobCountList : (list<uint32>) getSubmissionTimeValue("watsonEngineCountList");
+		expression<rstring> $subnets  : getSubmissionTimeValue("ipSubnets" , ""); 
 
 	type 
 		ReducedPacket = 
@@ -52,8 +55,14 @@ composite PacketHandler
            output Out : ipSrc_addr = ipSrcAddr, dstPort = IP_DST_PORT, protocol = IP_PROTOCOL, captureSeconds = captureSeconds, netflowMessage = PAYLOAD_DATA, payloadLength = PAYLOAD_LENGTH;
         }   
 
+		// This is effectively skipped if no subnets are provided. 
+		stream<ReducedPacket> IpFiltered = SubnetIPFilter(PacketStream)
+		{
+		  param
+		    subnets: $subnets;
+		} 
 
-		stream<ReducedPacket> RtpFiltered = RtpFilter(PacketStream)
+		stream<ReducedPacket> RtpFiltered = RtpFilter(IpFiltered)
 		{
 		} 
 
