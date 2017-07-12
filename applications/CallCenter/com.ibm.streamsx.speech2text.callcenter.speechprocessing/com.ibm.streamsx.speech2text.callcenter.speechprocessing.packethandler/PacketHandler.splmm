@@ -14,8 +14,8 @@ composite PacketHandler
      param
 
        expression<float64> $sttimeout    : (float64) getSubmissionTimeValue("sttimeout", "30");
-       expression<rstring> $connHost     : getSubmissionTimeValue("connHost");
-       expression<uint32>  $connPort     : (uint32) getSubmissionTimeValue("connPort");
+//       expression<rstring> $connHost     : getSubmissionTimeValue("connHost");
+//       expression<uint32>  $connPort     : (uint32) getSubmissionTimeValue("connPort");
        expression<rstring> $controlDiagnostics  : getSubmissionTimeValue("controlDiagnostics");
         expression<int32>  $tupleDebug   : (int32) getSubmissionTimeValue("tupleDebug", "10000000");
 		expression<int32> $numHosts : (int32) getSubmissionTimeValue("numWatsonHosts");
@@ -39,14 +39,20 @@ composite PacketHandler
 
       graph
 
-        stream<PacketType> PacketStreamTCP1 = TCPSource()
+//        stream<PacketType> PacketStreamTCP1 = TCPSource()
+//        {
+//          param
+//           role    : client;
+//           address : $connHost;
+//           port    :$connPort;
+//           format  : csv;
+//
+//        }
+        
+        stream<PacketType> PacketStreamTCP1 = Import()
         {
-          param
-           role    : client;
-           address : $connHost;
-           port    :$connPort;
-           format  : csv;
-
+        	param
+        		subscription : topic == "networkPackets"; 
         }
 
         stream<ReducedPacket> PacketStream  as Out = Functor(PacketStreamTCP1) 

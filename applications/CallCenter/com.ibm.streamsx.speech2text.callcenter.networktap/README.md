@@ -28,6 +28,9 @@ available currently at https://github.com/Alex-Cook4/streamsx.network/tree/rtp-d
 The executable created above will need the proper permissions to be able to
 read from a network tap ... 
 
+**Code Change**: You will need to uncomment and use the TCP Sink in the NetworkTap application, as well as the 
+TCP Source in the PacketHandler application. (Import/Export doesn't work in standalone mode)
+
 To set the permissions on the executable you need sudo authority  
 
 First unbundle the .sab file created 

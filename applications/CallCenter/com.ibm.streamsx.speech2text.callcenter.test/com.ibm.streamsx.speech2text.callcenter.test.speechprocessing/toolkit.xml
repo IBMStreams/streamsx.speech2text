@@ -18,6 +18,7 @@
       <compositeOp column="11" line="9" name="PacketSimulator" potentialMain="true" uriIndex="2">
         <parameter defaultValue="(uint32)getSubmissionTimeValue(&quot;connPort&quot;)" metaType="Expression" name="connPort" optional="true" type="&lt;uint32>"/>
         <parameter defaultValue="getSubmissionTimeValue(&quot;pcapFileDir&quot;)" metaType="Expression" name="PcapFileDir" optional="true" type="&lt;rstring>"/>
+        <parameter defaultValue="(float64)getSubmissionTimeValue(&quot;packetRate&quot;, &quot;100000&quot;)" metaType="Expression" name="packetRate" optional="true" type="&lt;float64>"/>
       </compositeOp>
       <compositeOp column="11" line="3" name="CallCenterTest" potentialMain="true" uriIndex="3"/>
     </namespace>
