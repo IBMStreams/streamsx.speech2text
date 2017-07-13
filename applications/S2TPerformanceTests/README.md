@@ -65,3 +65,17 @@ There will be two output files for each test:
 **Real-time Factor** - Calculated as (Processing Time) / (Time of Audio). This is a key measurement. If you can process audio representative 
 of what you want to process in production, then finding the number of parallel engines where you maintain a Real-time factor < 1, allows you 
 to estimate the number of S2T engines you can run in parallel in production. 
+
+### Results Cleaning
+
+To clean the "\*Performance.txt" files for easy analysis in Excel, you can use the following awk commands: 
+
+Getting throughput results for each file that was processed (good for real-time factor analysis): 
+```
+awk ' { print FILENAME " " $0 } ' * | tr -d "\"" | sed $'s/\/path\/to\/audio\/directory\///' | sed 's/s //g' | tr -d "%," | sed s'/\:/ /g' | grep -v "Test completed" > throughputResults.txt
+```
+
+Getting summary results for all the tests (see how long the entire tests took to complete): 
+```
+ awk ' { print FILENAME " " $0 } ' * | tr -d "\"" | grep "Test completed" > testSummary.txt
+```
