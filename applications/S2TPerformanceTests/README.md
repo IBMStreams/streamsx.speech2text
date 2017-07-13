@@ -20,6 +20,8 @@ processed already.
 Once the test is complete, the  <test-name>_Performance.txt will also have the total time it took to process
 the audio provided. This can be used to approximate the time it will take for batch processing of audio. 
 
+The easiest way to sequentially run many tests is to use the parallelPerf.sh script. 
+
 ## Minimum to run with defaults (must supply Watson model and config): 
 	st submitjob output/com.ibm.streamsx.speech2text.perf.PerfTest.sab -P watsonModelFile=/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3.pkg -P watsonConfigFile=/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3-8kHz-diarization-error.pset
 
@@ -38,6 +40,21 @@ the audio provided. This can be used to approximate the time it will take for ba
 	numRepetitions : <1> - Number of times to submit the files from a directory for processing. This allows you to create large tests from a small number of audio files. 
 	numFiles : <5> - Number of .raw files to be processed from the provided directory. 
 	audioDirectory : <audio> - Location of the audio to be processed. 
+
+## Running with parallelPerf.sh Script
+The parallelPerf.sh script is helpful for easily running multiple benchmark tests on a system. 
+
+Script parameters: 
+```
+./parallelPerf.sh <test-name> <watsonModel> <watsonConfig> <writeUtterancesToFile (bool)> <blockSize> <numRepetitions> <numFiles> <audioDirectory> <parallelWidth (list)>
+```
+
+Sample command: 
+
+Run tests of 1, 5, 10, and 15 Speech engines. Don't write utterances to file. Send 200 byte packets of audio. There are 31 files in the audio directory located at ../../audio_even and we are going to run through them 3 times each (per test). Each of the 4 tests will write to separate output files with the test name + the parallel width for identification. 
+```
+./parallelPerf.sh BasicRapid /opt/ibm/model/EnUS_Telephony_r2.3.1.pkg /opt/ibm/model/EnUS_Telephony_r2.3.1-8kHz-diarization.pset false 200 3 31  ../../audio_even '1 5 10 15'
+```
 
 ## Results Analysis
 There will be two output files for each test: 
