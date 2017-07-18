@@ -33,7 +33,7 @@ the audio provided. This can be used to approximate the time it will take for ba
 	watsonConfigFile : <none> - Required: The location of the Watson .pset config file to run this test. 
 	testName : <default> - The name of the test. This will be used to write out performance results to <test-name>_Performance.txt and utterances to <test-name>_Utterances.txt. 
 	writeUtterancesToFile : <true> - Boolean value of whether or not to write utterances to file. For extremely large parallel tests, we recommend you use false.  
-	parallelWidth : <10> - Number of Speech2Text engines to have running in parallel. 
+	parallelWidth : <1> - Number of Speech2Text engines to have running in parallel. 
 	blockSize : <200> - Number of bytes per tuple being sent to the WatsonS2T engine. For RTP packets, ~200 bytes. 
 	numRepetitions : <1> - Number of times to submit the files from a directory for processing. This allows you to create large tests from a small number of audio files. 
 	numFiles : <5> - Number of .raw files to be processed from the provided directory. 
@@ -45,6 +45,4 @@ There will be two output files for each test:
 	At the bottom, there will also be a "Test Completed" message that gives the total time to complete the test. 
 	* <test-name>_utterances.txt - If the test is set to actually write utterances, you will find them here. 
 	
-**Real-time Factor** - Calculated as (Processing Time) / (Time of Audio). This is a key measurement. If you can process audio representative 
-of what you want to process in production, then finding the number of parallel engines where you maintain a Real-time factor < 1, allows you 
-to estimate the number of S2T engines you can run in parallel in production. 
+**Real-time Factor** - Calculated as (Time of Audio) / (Processing Time) on a per-audio-stream basis. As you increase the number of Speech2Text engines (by increasing the parallelWidth parameter), your real-time factor will gradually go down (since it is on a per-stream basis, and you are putting more load on the server). The parallel width at which you can maintain a real-time factor slightly above 1.0 is the number of audio streams that you can comfortably process in parallel in production. 
