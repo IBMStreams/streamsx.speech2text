@@ -44,6 +44,15 @@ The easiest way to sequentially run many tests is to use the parallelPerf.sh scr
 ## Recommended Audio
 For sample audio, you can use the RAW audio files included in the RAWWatsonS2T sample application in the Speech2Text toolkit as a starting point. However, to get accurate results you should use audio that is representative of the audio you need to process. For good benchmark timings, you should also try to have audio files of short length (~2% of total expected test time). This will make sure that the test doesn't finish with 1 / X engines completing the processing of one long audio file. 
 
+You can convert audio to the correct RAW format using FFMPEG: 
+```
+$ ffmpeg -i <wav-file>.wav -ac 1 -f s16le -ar 8000 -acodec pcm_s16le <converted-file>.raw
+```
+You can also trim files to the size of your choice using FFMPEG: 
+```
+ffmpeg -t 120 -i <file-name>.wav <file-name>_short.wav
+```
+
 ## Running with parallelPerf.sh Script
 The parallelPerf.sh script is helpful for easily running multiple benchmark tests on a system. 
 
