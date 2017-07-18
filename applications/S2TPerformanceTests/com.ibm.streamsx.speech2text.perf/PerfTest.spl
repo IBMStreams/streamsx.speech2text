@@ -6,16 +6,14 @@ composite PerfTest
 {
 	param
 		expression<rstring> $audioDataDir : getSubmissionTimeValue("audioDirectory", "audio") ;
-		expression<int32> $filesInAudioDir : (int32) getSubmissionTimeValue("numFiles", "5") ;
-		expression<int32> $repetitions : (int32) getSubmissionTimeValue("numRepetitions", "1") ;
+		expression<int32> $filesInAudioDir : (int32) getSubmissionTimeValue("numAudioFiles", "5") ;
+		expression<int32> $repetitions : (int32) getSubmissionTimeValue("executionsPerAudioFile", "1") ;
 		expression<uint32> $blockSize : (uint32) getSubmissionTimeValue("blockSize" , "200"); 
-		expression<int32> $parallelWidth : (int32) getSubmissionTimeValue("parallelWidth", "10"); 
+		expression<int32> $parallelWidth : (int32) getSubmissionTimeValue("parallelWidth", "1"); 
 		expression<boolean> $writeUtterances : getSubmissionTimeValue("writeUtterancesToFile", "true") == "true"; 
 		expression<rstring> $testName : getSubmissionTimeValue("testName", "default");
 		expression<rstring> $watsonConfigFile : getSubmissionTimeValue("watsonConfigFile"); 
-			// "/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3-8kHz-diarization-error.pset" ;
 		expression<rstring> $watsonModelFile : getSubmissionTimeValue("watsonModelFile");
-			// "/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3.pkg" ;
 	graph
 		stream<rstring speech> RAWFiles = DirectoryScan()
 		{

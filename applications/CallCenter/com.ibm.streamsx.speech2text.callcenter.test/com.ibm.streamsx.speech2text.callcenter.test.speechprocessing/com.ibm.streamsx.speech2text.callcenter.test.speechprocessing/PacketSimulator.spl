@@ -4,24 +4,23 @@ use com.ibm.streamsx.network.ipv4::* ;
 use com.ibm.streamsx.network.ipv6::* ;
 use com.ibm.streamsx.network.source::* ;
 use com.ibm.streamsx.network.parse::* ;
-use com.ibm.streamsx.speech2text.callcenter.types::*;
+use com.ibm.streamsx.speech2text.callcenter.types::* ;
 
 composite PacketSimulator
 {
 	param
-	       	expression<uint32>  $connPort     : (uint32) getSubmissionTimeValue("connPort");
-       		expression<rstring> $PcapFileDir : getSubmissionTimeValue("pcapFileDir");
+		expression<uint32> $connPort :(uint32) getSubmissionTimeValue("connPort") ;
+		expression<rstring> $PcapFileDir : getSubmissionTimeValue("pcapFileDir") ;
+		expression<float64> $packetRate :(float64) getSubmissionTimeValue("packetRate", "100000") ;
 	graph
-		
-        stream<rstring filename> TestFile = DirectoryScan()
-    	{
-    		param
-    		   directory : $PcapFileDir ;
-		   pattern : "\\.pcap$";
-		   initDelay : 5.0; 
-    	}
+		stream<rstring filename> TestFile = DirectoryScan()
+		{
+			param
+				directory : $PcapFileDir ;
+				pattern : "\\.pcap$" ;
+				initDelay : 5.0 ;
+		}
 
-		
 		stream<PacketType> PacketStream as Out = PacketFileSource(TestFile)
 		{
 			output
@@ -30,15 +29,23 @@ composite PacketSimulator
 					captureSeconds =(uint32) getSeconds(getTimestamp()), PAYLOAD_DATA =
 					PAYLOAD_DATA(), PAYLOAD_LENGTH = PAYLOAD_LENGTH() ;
 		}
+		
+		stream<PacketType> ThrottledPackets = Throttle(PacketStream)
+		{
+			param
+				rate : $packetRate ;
+		}
 
-		() as TcpSink_PacketStream = TCPSink(PacketStream)
+		() as TcpSink_PacketStream = TCPSink(ThrottledPackets)
 		{
 			param
 				role : server ;
 				port : $connPort ;
 				format : csv ;
 			config
-				threadedPort : queue(PacketStream, Sys.Wait, 1000000) ;
+				threadedPort : queue(ThrottledPackets, Sys.Wait, 1000000) ;
 		}
+
+
 
 }
