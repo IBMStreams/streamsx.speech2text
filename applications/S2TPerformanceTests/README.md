@@ -20,6 +20,8 @@ processed already.
 Once the test is complete, the  <test-name>_Performance.txt will also have the total time it took to process
 the audio provided. This can be used to approximate the time it will take for batch processing of audio. 
 
+The easiest way to sequentially run many tests is to use the parallelPerf.sh script. 
+
 ## Minimum to run with defaults (must supply Watson model and config): 
 	st submitjob output/com.ibm.streamsx.speech2text.perf.PerfTest.sab -P watsonModelFile=/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3.pkg -P watsonConfigFile=/homes/hny5/cooka/git/toolkit.speech2text/model/EnUS_Telephony_r2.2.3-8kHz-diarization-error.pset
 
@@ -42,10 +44,43 @@ the audio provided. This can be used to approximate the time it will take for ba
 ## Recommended Audio
 For sample audio, you can use the RAW audio files included in the RAWWatsonS2T sample application in the Speech2Text toolkit as a starting point. However, to get accurate results you should use audio that is representative of the audio you need to process. For good benchmark timings, you should also try to have audio files of short length (~2% of total expected test time). This will make sure that the test doesn't finish with 1 / X engines completing the processing of one long audio file. 
 
+## Running with parallelPerf.sh Script
+The parallelPerf.sh script is helpful for easily running multiple benchmark tests on a system. 
+
+Script parameters: 
+```
+./parallelPerf.sh <test-name> <watsonModel> <watsonConfig> <writeUtterancesToFile (bool)> <blockSize> <numRepetitions> <numFiles> <audioDirectory> <parallelWidth (list)>
+```
+
+Sample command: 
+
+Run tests of 1, 5, 10, and 15 Speech engines. Don't write utterances to file. Send 200 byte packets of audio. There are 31 files in the audio directory located at ../../audio_even and we are going to run through them 3 times each (per test). Each of the 4 tests will write to separate output files with the test name + the parallel width for identification. 
+```
+./parallelPerf.sh BasicRapid /opt/ibm/model/EnUS_Telephony_r2.3.1.pkg /opt/ibm/model/EnUS_Telephony_r2.3.1-8kHz-diarization.pset false 200 3 31  ../../audio_even '1 5 10 15'
+```
+
 ## Results Analysis
 There will be two output files for each test: 
 	* <test-name>_Performance.txt - This will contain the processing time for each file, as well as the real-time factor for processing that file. 
 	At the bottom, there will also be a "Test Completed" message that gives the total time to complete the test. 
 	* <test-name>_utterances.txt - If the test is set to actually write utterances, you will find them here. 
 	
-**Real-time Factor** - Calculated as (Time of Audio) / (Processing Time) on a per-audio-stream basis. As you increase the number of Speech2Text engines (by increasing the parallelWidth parameter), your real-time factor will gradually go down (since it is on a per-stream basis, and you are putting more load on the server). The parallel width at which you can maintain a real-time factor slightly above 1.0 is the number of audio streams that you can comfortably process in parallel in production. 
+**Real-time Factor** - Calculated as (Time of Audio) / (Processing Time) on a per-audio-stream basis. As you increase the 
+number of Speech2Text engines (by increasing the parallelWidth parameter), your real-time factor will gradually go down 
+(since it is on a per-stream basis, and you are putting more load on the server). The parallel width at which you can 
+maintain a real-time factor slightly above 1.0 is the number of audio streams that you can comfortably process in 
+parallel in production. 
+
+### Results Cleaning
+
+To clean the "\*Performance.txt" files for easy analysis in Excel, you can use the following awk commands: 
+
+Getting throughput results for each file that was processed (good for real-time factor analysis): 
+```
+awk ' { print FILENAME " " $0 } ' * | tr -d "\"" | sed $'s/\/path\/to\/audio\/directory\///' | sed 's/s //g' | tr -d "%," | sed s'/\:/ /g' | grep -v "Test completed" > throughputResults.txt
+```
+
+Getting summary results for all the tests (see how long the entire tests took to complete): 
+```
+ awk ' { print FILENAME " " $0 } ' * | tr -d "\"" | grep "Test completed" > testSummary.txt
+```
