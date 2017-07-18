@@ -39,6 +39,9 @@ the audio provided. This can be used to approximate the time it will take for ba
 	numAudioFiles : <5> - Number of .raw files to be processed from the provided directory. 
 	audioDirectory : <audio> - Location of the audio to be processed. 
 
+## Recommended Audio
+For sample audio, you can use the RAW audio files included in the RAWWatsonS2T sample application in the Speech2Text toolkit as a starting point. However, to get accurate results you should use audio that is representative of the audio you need to process. For good benchmark timings, you should also try to have audio files of short length (~2% of total expected test time). This will make sure that the test doesn't finish with 1 / X engines completing the processing of one long audio file. 
+
 ## Results Analysis
 There will be two output files for each test: 
 	* <test-name>_Performance.txt - This will contain the processing time for each file, as well as the real-time factor for processing that file. 
