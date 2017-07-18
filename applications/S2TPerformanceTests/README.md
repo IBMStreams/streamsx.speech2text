@@ -35,8 +35,8 @@ the audio provided. This can be used to approximate the time it will take for ba
 	writeUtterancesToFile : <true> - Boolean value of whether or not to write utterances to file. For extremely large parallel tests, we recommend you use false.  
 	parallelWidth : <1> - Number of Speech2Text engines to have running in parallel. 
 	blockSize : <200> - Number of bytes per tuple being sent to the WatsonS2T engine. For RTP packets, ~200 bytes. 
-	numRepetitions : <1> - Number of times to submit the files from a directory for processing. This allows you to create large tests from a small number of audio files. 
-	numFiles : <5> - Number of .raw files to be processed from the provided directory. 
+	executionsPerAudioFile : <1> - Number of times to submit the files from a directory for processing. This allows you to create large tests from a small number of audio files. 
+	numAudioFiles : <5> - Number of .raw files to be processed from the provided directory. 
 	audioDirectory : <audio> - Location of the audio to be processed. 
 
 ## Results Analysis
