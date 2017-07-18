@@ -16,7 +16,7 @@ echo "Width $parallelWidth";
 
 for width in $parallelWidth;
 do
-	testName="${name}_parallel${width}_block${blockSize}_${numAudioFiles}files_${executionsPerAudioFile}executionsPerAudioFile${writeUtterancesToFile}";
+	testName="${name}_parallel${width}_block${blockSize}_${numAudioFiles}files_${executionsPerAudioFile}executionsPerAudioFile_WriteUtterances${writeUtterancesToFile}";
 	cmd="streamtool submitjob output/com.ibm.streamsx.speech2text.perf.PerfTest.sab -P watsonModelFile=$watsonModelFile -P watsonConfigFile=$watsonConfigFile -P audioDirectory=$audioDirectory -P numAudioFiles=$numAudioFiles -P executionsPerAudioFile=$executionsPerAudioFile -P blockSize=$blockSize -P writeUtterancesToFile=$writeUtterancesToFile -P testName=$testName -P parallelWidth=$width --jobname $testName";
 	echo $cmd;
 	`$cmd`;
