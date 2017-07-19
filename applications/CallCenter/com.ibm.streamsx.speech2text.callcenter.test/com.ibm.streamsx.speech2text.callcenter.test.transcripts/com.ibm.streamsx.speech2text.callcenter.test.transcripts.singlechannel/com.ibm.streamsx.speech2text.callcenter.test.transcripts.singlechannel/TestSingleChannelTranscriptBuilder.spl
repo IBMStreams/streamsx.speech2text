@@ -1,0 +1,47 @@
+namespace com.ibm.streamsx.speech2text.callcenter.test.transcripts.singlechannel;
+
+use com.ibm.streamsx.topology.topic::Publish ;
+use com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel::*; 
+use com.ibm.streamsx.speech2text.callcenter.types::Utterance ;
+
+composite TestSingleChannelTranscriptBuilder
+{
+	graph
+		() as SendUtterances = PublishUtterancesFromFile()
+		{}
+		
+		() as SingleChannelTranscripts = SingleChannelTranscriptBuilder()
+		{
+		}
+	config
+		// tag is overridden using job config
+        hostPool : P1=createPool({tags=["transcripts"]},Sys.Shared);
+        placement  : host(P1); 
+}
+
+public composite PublishUtterancesFromFile
+{	
+	param
+		expression<rstring> $utteranceDirectory : getSubmissionTimeValue("utteranceDir","");
+	graph
+		stream<rstring name> DirectoryScanFiles =
+			DirectoryScan()
+		{
+			param
+				directory : $utteranceDirectory ;
+				pattern : ".*\\.csv"; 
+				initDelay : 3.0; 
+		}
+
+		stream<Utterance> Utterances =
+			FileSource(DirectoryScanFiles)
+		{
+		}
+		
+		() as Publish_2 = Publish(Utterances)
+		{
+			param
+				topic : "callcenter/speechprocessing/utterances" ;
+		}
+}
+
