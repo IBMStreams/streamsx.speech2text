@@ -71,8 +71,9 @@ Here is a basic set of deployment steps:
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeBin
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeWAV
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeToDir
+	mkdir -p $STREAMS_CALLCENTER_DATA/transcripts
 	```
-	(you can also run com.ibm.streamsx.speech2text.callcenter.speechprocessing/mkDefaultDirectories.sh)
+	(you can also run mkDefaultDirectories.sh)
 2. Submit the Network Tap application (for submission in standalone mode, see README in the application):
 	- `cd com.ibm.streamsx.speech2text.callcenter.networktap/`
 	- `streamtool submitjob -P networkInterface=eth1 -P connPort=23146` output/com.ibm.streamsx.speech2text.callcenter.networktap.Main.sab
@@ -86,4 +87,4 @@ Here is a basic set of deployment steps:
 	- `cd com.ibm.streamsx.speech2text.callcenter.test/com.ibm.streamsx.speech2text.callcenter.test.speechprocessing/`
 	- Modify the submit_example.sh script to have the parameters you want. You will need a directory with pcap files to replay. 
 	- `Run ./submit_example.sh`
-5. Validate that data is flowing by checking the output utterance files and the console. Ensure that the line up with the expected audio in the PCAP files. 
+5. Validate that data is flowing by checking the output utterance files and the console. Ensure that they line up with the expected audio in the PCAP files. 

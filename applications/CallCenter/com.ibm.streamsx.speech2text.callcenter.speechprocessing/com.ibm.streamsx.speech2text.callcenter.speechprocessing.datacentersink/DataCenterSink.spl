@@ -5,6 +5,7 @@
 namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.datacentersink ;
 
 use com.ibm.streamsx.speech2text.callcenter.types::*; 
+use com.ibm.streamsx.topology.topic::*; 
 
 composite DataCenterSink
 {	 
@@ -45,6 +46,12 @@ composite DataCenterSink
 		          format : csv;
 		      config
 		         threadedPort : queue(Import_Utterances,Sys.Wait, 1000000);
+		    }
+		    
+		    () as UtterancePublisher = Publish(Import_Utterances)
+		    {
+		    	param
+		    		topic : "callcenter/speechprocessing/utterances"; 
 		    }
 
 	config

@@ -36,16 +36,22 @@ composite PacketSimulator
 				rate : $packetRate ;
 		}
 
-		() as TcpSink_PacketStream = TCPSink(ThrottledPackets)
+//		() as TcpSink_PacketStream = TCPSink(ThrottledPackets)
+//		{
+//			param
+//				role : server ;
+//				port : $connPort ;
+//				format : csv ;
+//			config
+//				threadedPort : queue(ThrottledPackets, Sys.Wait, 1000000) ;
+//		}
+
+		() as PacketExport = Export(ThrottledPackets)
 		{
 			param
-				role : server ;
-				port : $connPort ;
-				format : csv ;
-			config
-				threadedPort : queue(ThrottledPackets, Sys.Wait, 1000000) ;
-		}
+				properties : { topic = "networkPackets" } ;
 
+		}
 
 
 }

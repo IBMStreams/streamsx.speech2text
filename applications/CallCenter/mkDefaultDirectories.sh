@@ -5,3 +5,5 @@
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeBin
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeWAV
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeToDir
+	mkdir -p $STREAMS_CALLCENTER_DATA/transcripts
+	mkdir -p $STREAMS_CALLCENTER_DATA/test/speechprocessing/pcaps/

@@ -37,28 +37,29 @@ composite WatsonSpeech2Text
 			, uint32 captureSeconds,  rstring role
 			, rstring utterance, int32 speakerId>;
 
-      graph
-             stream<AudioPacket> Imported_Utterances = Subscribe() {
-              param
-                  topic :  "Import_Utterances" + $watsonJobId ;
-                  streamType : tuple<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,   blob speech, int32 samples, int32 jobId, uint32 hostId>; 
+	graph
+		stream<AudioPacket> Imported_Utterances = Subscribe() {
+			param
+				topic :  "Import_Utterances" + $watsonJobId ;
+				streamType : tuple<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,   blob speech, int32 samples, int32 jobId, uint32 hostId>;  
            }
 
 
-             stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,  blob speech, int32 samples, int32 jobId, uint32 hostId> Imported2_Utterances = Functor(Imported_Utterances) {
-           }
+        stream<rstring id, rstring channel_id, uint32 ssrc, uint32 ts, uint32 captureSeconds,  blob speech, int32 samples, int32 jobId, uint32 hostId> Imported2_Utterances = Functor(Imported_Utterances) 
+        {
+        }
 
 
-                @parallel(width = $numWatsonEngines  , partitionBy = [ { port = Imported2_Utterances,  attributes = [jobId] } ])
-                (
-                   stream<bestUtterance> Utterances;
-                   stream<rstring log> Diagnostics
-                 ) = SpeechToText(Imported2_Utterances)
-                {  
-                   param 
-                            paramsetFile : $paramsetFile;
-                            packageFile  : $packageFile; 
-                }
+        @parallel(width = $numWatsonEngines  , partitionBy = [ { port = Imported2_Utterances,  attributes = [jobId] } ])
+        (
+           stream<bestUtterance> Utterances;
+           stream<rstring log> Diagnostics
+         ) = SpeechToText(Imported2_Utterances)
+        {  
+           param 
+               paramsetFile : $paramsetFile;
+               packageFile  : $packageFile; 
+        }
 
 
                (
@@ -124,7 +125,7 @@ composite WatsonSpeech2Text
 
 
            config
-            hostPool : P1=createPool({size=1u, tags=["watsonJob"]},Sys.Shared);
+            hostPool : P1=createPool({tags=["watsonJob"]},Sys.Shared);
             placement  : host(P1);
 }  
 
@@ -147,7 +148,7 @@ composite SpeechToText(input inp ; output Utterances, Debug)
 			           output 
 			           		Utterances :     
 			           					 utteranceStartTime = getUtteranceStartTime(),  
-                                                                         utteranceEndTime   = getUtteranceEndTime(),
+                                         utteranceEndTime   = getUtteranceEndTime(),
 			           					 utteranceNumber = getUtteranceNumber(),
 			           					 utterance = getUtteranceText(),
 			           					 utteranceConfidence = getUtteranceConfidence(),

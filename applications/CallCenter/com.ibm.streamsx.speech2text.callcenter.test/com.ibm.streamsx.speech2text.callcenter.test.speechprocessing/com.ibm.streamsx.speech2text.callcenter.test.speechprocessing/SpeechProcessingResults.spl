@@ -27,10 +27,25 @@ composite SpeechProcessingResults
            format  : csv;
         }
         
-        () as UtteranceSink = FileSink(UtterancesStream)
+       	() as UtteranceSink = FileSink(UtterancesStream)
         {
         	param
         		file : $utteranceDirectory + "/utteranceResults.csv";
+        }
+        
+        stream<rstring callId, rstring utterance, float64 utteranceStartTime, int64 secondsAfterStart>
+        	TimedUtterances = Functor(UtterancesStream)
+        {
+        	logic
+        		state : { timestamp startup = getTimestamp(); }
+        	output TimedUtterances : 
+        		secondsAfterStart = (int64) diffAsSecs(getTimestamp(), startup); 
+        }
+        
+        () as TimedUtteranceSink = FileSink(TimedUtterances)
+        {
+        	param
+        		file : $utteranceDirectory + "/utteranceTimings.csv";
         }
         
 }

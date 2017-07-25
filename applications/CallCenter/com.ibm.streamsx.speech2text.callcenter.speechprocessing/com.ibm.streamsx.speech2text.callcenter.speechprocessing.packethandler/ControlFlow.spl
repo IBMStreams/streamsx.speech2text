@@ -68,6 +68,7 @@ public composite ControlFlow (input Payload; output EnhancedData,ControlFlowDiag
  
                                         mutable map<tuple<uint32 hostId, int32 jobId>, timestampPayload> lastPayload;
                                         mutable map<tuple<uint32 hostId, int32 jobId>, timestampPayload> lastPayloadCopy;
+                                		mutable int64 packetsDropped = 0; 
                                 }
                                onTuple Payload :
                                 { 
@@ -92,7 +93,9 @@ public composite ControlFlow (input Payload; output EnhancedData,ControlFlowDiag
                                          }
                                       idx += (uint32)1;  
                                     }
-
+									
+									createCustomMetric("packetsDropped","",Sys.Gauge,0l);
+									
                                      first_time = 0;
                                   } 
                                    first_time = 0; 
@@ -116,9 +119,10 @@ public composite ControlFlow (input Payload; output EnhancedData,ControlFlowDiag
                                         mutable int32 sHostId = getHost(jobPool);
                                         if (sHostId == -1) {
    //                                            println("All jobs are busy, the file " + speechData + " will not be processed") ; 
-     //                                          mutable rstring logMessage = "CTL001" + speechData  + "will not be processed " + formatNumber((int64)first_time) ; 
-       //                                        submit({ log = logMessage }  , ControlFlowDiagnostics ) ;
-
+//                                               mutable rstring logMessage = "Id: " + id  + "will not be processed. All engines are busy." ; 
+//                                               submit({ log = logMessage }  , ControlFlowDiagnostics ) ;
+                                               packetsDropped++; 
+												setCustomMetricValue("packetsDropped", packetsDropped); 
                                                 return ;
                                         }
                                         mutable uint32 hostId = (uint32)sHostId;

@@ -8,3 +8,4 @@ output/
 bin/
 .toolkitList
 *~
+/CallCenterSubmissionBundle.tgz
