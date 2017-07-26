@@ -1,0 +1,202 @@
+/*******************************************************************************
+ * Copyright (C) 2016, International Business Machines Corporation
+ * All Rights Reserved
+ *******************************************************************************/
+
+namespace com.ibm.streamsx.speech2text.callcenter.speechprocessing.packethandler;  
+  
+//  type sttInput = tuple<rstring callId, rstring cspeakerId, rstring wavFile, int32 jobId, uint32 hostId > ;
+
+type timestampPayload  = tuple<timestamp beginTimestamp,timestamp lastTimestamp>;  
+
+int32 getHost(list<list<int32>> jobPool) {
+        mutable int32 bestHost = 0;
+        mutable int32 curHost = 1;
+        while ( curHost < size(jobPool) ) {
+                if ( size(jobPool[curHost]) > size(jobPool[bestHost]) )
+                        bestHost = curHost;
+                ++curHost;
+        }
+        if (size(jobPool[bestHost]) == 0)
+                bestHost = -1;
+        return bestHost;
+}
+
+int32 getUsedCount(list<list<int32>> jobPool) {
+        mutable int32 totals = 0;
+        mutable int32 curHost = 0;
+        while ( curHost < size(jobPool) ) {
+             totals = totals + size(jobPool[curHost]);
+             ++curHost;
+        }
+        return totals;
+}
+
+
+public composite ControlFlow (input Payload; output EnhancedData,ControlFlowDiagnostics)  {
+
+    param
+        expression <float64>      $sttTimeout;
+        expression <uint32>       $hostCount;
+        expression <list<uint32>> $jobCount ; 
+
+        graph
+
+        stream<timestamp deadLine> ReleaseSttTimer = Beacon()
+        {
+                param
+                        period : $sttTimeout;
+                output ReleaseSttTimer:
+
+                        deadLine = add(getTimestamp(), -$sttTimeout);
+        }
+
+
+		  ( stream<Payload payload, int32 jobId, uint32 hostId >  EnhancedData; 
+            stream<rstring log> ControlFlowDiagnostics )   = Custom(Payload; ReleaseSttTimer)
+                {
+                        logic
+                                state :
+                                { 
+                                    mutable int32 first_time = 1; 
+                                        mutable list<list<int32>> jobPool; 
+                                        mutable map<tuple<rstring id, rstring channel_id>,
+                                          tuple<uint32 hostId, int32 jobId>> jobMap; // Map between input metadata and job id 
+
+                                        mutable map<tuple<uint32 hostId, int32 jobId>,
+                                          tuple<rstring id, rstring channel_id>> reverseJobMap; // Map between job id and  input metadata 
+ 
+                                        mutable map<tuple<uint32 hostId, int32 jobId>, timestampPayload> lastPayload;
+                                        mutable map<tuple<uint32 hostId, int32 jobId>, timestampPayload> lastPayloadCopy;
+                                		mutable int64 packetsDropped = 0; 
+                                }
+                               onTuple Payload :
+                                { 
+                                  if ( first_time == 1  ) 
+                                  { 
+
+                                    jobPool = (list<list<int32>>)[]; 
+                                    // list<uint32> jobCounts = tokenize($jobCount,",",true);
+                                  list<uint32> jobCounts = $jobCount;
+                                    mutable uint32 idx  = 0u;
+                                    mutable uint32 idx2  = 0u;
+                                   uint32 loop = $hostCount;
+                                    while ( idx < loop ) {   
+                                         appendM(jobPool,(list<int32>)[]);
+                                         uint32 jobs = jobCounts[idx]; 
+                                         idx2 = (uint32)0;
+                                         while ( idx2 < jobs ) 
+                                         {
+                                            idx2 += (uint32)1;  
+                                           appendM(jobPool[(int32)idx], (int32)idx2);
+
+                                         }
+                                      idx += (uint32)1;  
+                                    }
+									
+									createCustomMetric("packetsDropped","",Sys.Gauge,0l);
+									
+                                     first_time = 0;
+                                  } 
+                                   first_time = 0; 
+  
+                                        mutable tuple<rstring id, rstring channel_id> key = {id = id, channel_id = channel_id};
+                                        if ( key in jobMap ) // {callId, speakerId} pair had been already assigned to a job
+                                        {
+                                                mutable tuple<uint32 hostId, int32 jobId> value = jobMap[key];
+ //                                               println(speechData  + " was sent again to host " + (rstring)value.hostId + ", job id: " + (rstring)value.jobId) ;
+                                                   submit({ payload =  Payload, jobId = value.jobId, hostId = value.hostId } ,  EnhancedData ); 
+
+                                               mutable timestampPayload timePayload =  lastPayload[value];
+                                               timePayload.lastTimestamp = getTimestamp(); 
+                                                 
+
+                                                 insertM(lastPayload, {hostId = value.hostId, jobId = value.jobId}, timePayload);
+
+                                                return;
+                                        }
+
+                                        mutable int32 sHostId = getHost(jobPool);
+                                        if (sHostId == -1) {
+   //                                            println("All jobs are busy, the file " + speechData + " will not be processed") ; 
+//                                               mutable rstring logMessage = "Id: " + id  + "will not be processed. All engines are busy." ; 
+//                                               submit({ log = logMessage }  , ControlFlowDiagnostics ) ;
+                                               packetsDropped++; 
+												setCustomMetricValue("packetsDropped", packetsDropped); 
+                                                return ;
+                                        }
+                                        mutable uint32 hostId = (uint32)sHostId;
+                                        int32 jobId = jobPool[hostId][0];
+       //                                 println(speechData + " was sent to host " + (rstring)hostId + ", job id: " +(rstring)jobId) ;
+                                       submit({ payload = Payload, jobId = jobId , hostId = hostId} , EnhancedData ) ;
+
+                                        removeM(jobPool[hostId], 0) ;
+
+                                         mutable timestampPayload timePayload =  {};
+                                         timePayload.beginTimestamp = getTimestamp();
+                                         timePayload.lastTimestamp = getTimestamp();
+
+                                        insertM(jobMap, {id = id, channel_id = channel_id}, {hostId = hostId, jobId = jobId}); 
+                                        insertM(reverseJobMap, {hostId = hostId, jobId = jobId}, {id = id, channel_id = channel_id}); 
+
+                                        insertM(lastPayload, {hostId = hostId, jobId = jobId}, timePayload);
+                                }
+                                onTuple ReleaseSttTimer : {
+                                        println("Timeout on: " + (rstring)deadLine);
+                                        clearM(lastPayloadCopy);
+                                        for (tuple<uint32 hostId, int32 jobId> job in lastPayload) {
+                                                timestampPayload jobTimestamp = lastPayload[job];
+                                                println("Job "+ (rstring)job.jobId + " timestamp is: " + (rstring)jobTimestamp.lastTimestamp);
+                                                if (jobTimestamp.lastTimestamp  > deadLine) {
+                                                        insertM(lastPayloadCopy, job, jobTimestamp); // Recreate the map
+                                                }
+                                                else {
+                                                        mutable rstring logMessage = "CTL002 call Released " + (rstring)ctime(jobTimestamp.beginTimestamp) + " " + (rstring)ctime(jobTimestamp.lastTimestamp);
+                                                       submit({ log = logMessage }  , ControlFlowDiagnostics ) ;
+  
+                                                        // Return job to a pool
+                                                        appendM(jobPool[job.hostId], job.jobId); 
+
+                                                        // remove the map stuff   
+                                                        if ( job in reverseJobMap ) 
+                                                        {
+                                                           mutable tuple<rstring id, rstring channel_id> tempKey =  reverseJobMap[job]; 
+                                                           removeM(reverseJobMap,job);
+                                                           removeM(jobMap,tempKey);
+                                                        } 
+                                                        else 
+                                                        {
+                                                           println("assert an error condition");
+                                                        }
+                                                     
+                                                        println("size of " +  (rstring)size(jobMap) ) ; 
+
+                                                        // Release Stt operator 
+                                                        mutable Payload pay = {}  ; 
+                                                       pay.id = "release";
+                                                        pay.channel_id= "";
+ 
+                                                         submit({ payload = pay , jobId = job.jobId, hostId = job.hostId } , EnhancedData ) ;                
+                                                }
+                                        }
+                                        lastPayload = lastPayloadCopy;  
+
+                                        mutable rstring logMessage = ctime(getTimestamp());
+                                        logMessage = concat(logMessage," ");
+
+                                        mutable int32 totalPoolSize  = getUsedCount(jobPool); 
+                                        logMessage = concat(logMessage, "CTL002 job pool availablity is  " + formatNumber((int64)totalPoolSize)) ;
+                                        submit({ log = logMessage }  , ControlFlowDiagnostics ) ;
+
+
+
+                                }
+                         // config restartable : false;      // jms
+                }
+
+
+
+
+
+}
+
