@@ -23,7 +23,7 @@ public composite SingleChannelTranscriptBuilder
 		{
 			param
 				period : 5.0;
-			output PeriodicTriggers : callId = "tigger"; 
+			output PeriodicTriggers : callId = "trigger"; 
 		}
 		
 		/*
