@@ -10,7 +10,7 @@ use com.ibm.streamsx.network.parse::* ;
  * Type of Stream exported to the "Data Center" by the DataCenterSink application
  */
 type  Utterance	=	
-	tuple<rstring callId, 					// ipAddress + captureSeconds -> In an environment where
+	tuple<rstring callId, 					// callCenter + ipAddress + captureSeconds -> In an environment where
 								// each speaker is on a separate RTP Streams, the callId
 								// is effectively the ID for that speaker's stream. 
 								// In the one-speaker to one-stream case, CTI correlation
