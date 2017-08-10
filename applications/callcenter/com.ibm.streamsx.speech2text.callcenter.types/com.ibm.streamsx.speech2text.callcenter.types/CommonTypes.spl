@@ -23,7 +23,11 @@ type  Utterance	=
         list<float64>  utteranceTokenConfidences/*,
         list<int32> utteranceSpeakers,
 		list<rstring> nBestHypotheses*/> ;
-								
+
+type Transcript = 
+		rstring callId, 
+		rstring transcript ;
+					
 type PacketType =
         uint64 packetsReceived,             // total number of packet received, as of last metrics interval
         uint64 packetsDropped,              // total number of packet dropped, as of last metrics interval

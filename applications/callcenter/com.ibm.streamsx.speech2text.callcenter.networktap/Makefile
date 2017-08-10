@@ -25,7 +25,9 @@
 
 SPLC = $(STREAMS_INSTALL)/bin/sc
 #SPLC_FLAGS = -a  -t /home/streamsadmin/IBMStreams-streamsx.network-5fefa2f/com.ibm.streamsx.network:
-SPLC_FLAGS = -a 
+SPLC_FLAGS = -a
+NETWORK_TOOLKIT=../../../.network-toolkit/streamsx.network-rtp-dev/com.ibm.streamsx.network/
+
 
 ifeq ($(STREAMS_STUDIO_BUILDING), 1)
   # Building from Streams Studio
@@ -40,7 +42,8 @@ JSI = $(STREAMS_INSTALL)
 all: BuildConfig
 
 BuildConfig:
-	$(SPLC) $(SPLC_FLAGS) -t $(STREAMS_SPLPATH):../com.ibm.streamsx.speech2text.callcenter.types -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)
+	chmod +x $(NETWORK_TOOLKIT)/impl/bin/libpcapPath.pl
+	$(SPLC) $(SPLC_FLAGS) -t $(NETWORK_TOOLKIT):../com.ibm.streamsx.speech2text.callcenter.types -M $(SPL_MAIN_COMPOSITE) --data-directory $(SPL_DATA_DIR) $(SPL_CMD_ARGS)
 
 clean: 
 	$(SPLC) $(SPLC_FLAGS) -C -M $(SPL_MAIN_COMPOSITE)

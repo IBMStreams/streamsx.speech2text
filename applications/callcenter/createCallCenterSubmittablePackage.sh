@@ -25,10 +25,10 @@ tar czvf CallCenterSubmissionBundle.tgz com.ibm.streamsx.speech2text.callcenter.
 	tests/com.ibm.streamsx.speech2text.callcenter.test.speechprocessing/README.md \
 	tests/com.ibm.streamsx.speech2text.callcenter.test.speechprocessing/etc \
 	tests/com.ibm.streamsx.speech2text.callcenter.test.speechprocessing/submit_example.sh \
-	com.ibm.streamsx.speech2text.callcenter.transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/output/ \
-	com.ibm.streamsx.speech2text.callcenter.transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/README.md \
-	com.ibm.streamsx.speech2text.callcenter.transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/etc \
-	com.ibm.streamsx.speech2text.callcenter.transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/submitJob.sh \
+	transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/output/ \
+	transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/README.md \
+	transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/etc \
+	transcripts/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel/submitJob.sh \
 	tests/transcripts/com.ibm.streamsx.speech2text.callcenter.test.transcripts.singlechannel/output/ \
 	tests/transcripts/com.ibm.streamsx.speech2text.callcenter.test.transcripts.singlechannel/README.md \
 	tests/transcripts/com.ibm.streamsx.speech2text.callcenter.test.transcripts.singlechannel/etc \
