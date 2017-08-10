@@ -10,19 +10,28 @@ use com.ibm.streamsx.network.parse::* ;
  * Type of Stream exported to the "Data Center" by the DataCenterSink application
  */
 type  Utterance	=	
-	tuple<rstring callId, 
-		int32 utteranceNumber,
-		float64 utteranceStartTime,  
-        float64 utteranceEndTime,
-        uint32 captureSeconds, 
-        rstring role,
-		rstring utterance,
-		int32 speakerId,
-        rstring callCenter,
-        float64 utteranceConfidence,
-        list<float64>  utteranceTokenConfidences/*,
-        list<int32> utteranceSpeakers,
-		list<rstring> nBestHypotheses*/> ;
+	tuple<rstring callId, 					// callCenter + ipAddress + captureSeconds -> In an environment where
+																  // each speaker is on a separate RTP Streams, the callId
+																  // is effectively the ID for that speaker's stream. 
+																  // In the one-speaker to one-stream case, CTI correlation
+																  // must be done. 
+         int32 utteranceNumber, 	// The utterance number for given RTP Stream, [0,1,...]
+         float64 utteranceStartTime, // Seconds of audio processed for a given RTP Stream
+																  // up to start of the Utterance
+         float64 utteranceEndTime,// Seconds of audio processed for a given RTP Stream
+																  // up to end of the Utterance
+         uint32 captureSeconds,  	// This refers to the capture time in seconds of the first
+																  // RTP packet in the SSRC stream
+         rstring role, 					  // role = "AGENT" -- this is currently useless
+         rstring utterance, 			// The text of a single utterance
+         int32 speakerId, 				// Not used - based on a channel id that is set to 0, since 
+																  // we only handle a single channel at a time
+         rstring callCenter, 				// ID for the call center the utterance is coming from
+         float64 utteranceConfidence, 			// Statistical confidence in the transcription of the utterance
+         list<float64>  utteranceTokenConfidences/*, 	// Statistical confidence in each token/word of the utterance
+         list<int32> utteranceSpeakers, 			// If using diarization, speaker of each token/word
+         list<rstring> nBestHypotheses*/> ; 		// Alternative guesses for the utterance text
+								
 
 type Transcript = 
 		rstring callId, 
