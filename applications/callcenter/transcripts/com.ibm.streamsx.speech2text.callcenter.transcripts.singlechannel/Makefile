@@ -12,6 +12,7 @@ SPL_TOOLKIT_ARGS = -t $(SPL_NETWORK_TOOLKIT):$(SPL_CALLCENTER_TYPES)
 all: buildConfig
 
 buildConfig:
+	spl-make-toolkit -i $(SPL_CALLCENTER_TYPES)
 	$(SPLC) $(SPLC_FLAGS) -M $(SPL_MAIN_COMPOSITE) $(SPL_CMD_ARGS) $(SPL_TOOLKIT_ARGS)
 
 clean: 

@@ -10,7 +10,10 @@ SPL_MAIN_COMPOSITE_WAV      = com.ibm.streamsx.speech2text.callcenter.speechproc
 SPL_DATA_DIR ?= ./data
 CALLCENTER_TYPES_TOOLKIT=../com.ibm.streamsx.speech2text.callcenter.types
 SPEECH2TEXT_HELPER_TOOLKIT=../../../com.ibm.streamsx.speech2text/
-SPL_CMD_ARGS ?= -t $(STREAMS_STUDIO_SPL_PATH):$(STREAMS_SPLPATH):$(CALLCENTER_TYPES_TOOLKIT):$(SPEECH2TEXT_HELPER_TOOLKIT)
+
+NETWORK_TOOLKIT=../../../.network-toolkit/streamsx.network-rtp-dev/com.ibm.streamsx.network/
+SPL_CMD_ARGS ?= -t $(STREAMS_STUDIO_SPL_PATH):$(STREAMS_SPLPATH):$(CALLCENTER_TYPES_TOOLKIT):$(SPEECH2TEXT_HELPER_TOOLKIT):$(NETWORK_TOOLKIT)
+
 BIN_LOC=impl/java/bin
 JSI = $(STREAMS_INSTALL)
 

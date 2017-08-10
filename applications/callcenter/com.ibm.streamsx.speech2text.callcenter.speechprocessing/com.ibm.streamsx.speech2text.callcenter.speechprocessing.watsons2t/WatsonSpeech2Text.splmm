@@ -61,36 +61,49 @@ composite WatsonSpeech2Text
                packageFile  : $packageFile; 
         }
 
+       (stream<Utterance> Utterance_Data ; stream<Utterance_File>
+       	UtteranceFileStream) = Custom(Utterances)
+       	{
+       		logic
+       			onTuple Utterances :
+       			{
+       				list<rstring> tokens = tokenize(id, "_", true) ;
+       				if(length(channel_id) > 0)
+       				{
+       				// mutable rstring tempUtterance = utterance;
+       					submit({ callId = $callCenter + "_" + id, utteranceNumber =
+       						utteranceNumber, utteranceStartTime = utteranceStartTime,
+       						utteranceEndTime = utteranceEndTime, captureSeconds =
+       						captureSeconds, role = "AGENT", utterance = utterance,
+       						speakerId =(int32) channel_id, callCenter = $callCenter,
+       						utteranceConfidence = utteranceConfidence,
+       						utteranceTokenConfidences = utteranceTokenConfidences/*,
+                    		utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses */
+       					}, Utterance_Data) ;
+       					if(size(tokens) > 1)
+       					{
+       						submit({ ipaddress = tokens [ 0 ], startingTime = tokens [
+       							1 ], callCenter = $callCenter, utteranceNumber =
+       							utteranceNumber, utteranceStartTime = utteranceStartTime,
+       							utteranceEndTime = utteranceEndTime, captureSeconds =
+       							captureSeconds, role = "AGENT", utterance = utterance,
+       							speakerId =(int32) channel_id }, UtteranceFileStream) ;
+       					}
+       					else
+	       				{
+	       					appTrc(Trace.info, "Call id didn't split well: " +(rstring) Utterances) ;
+	       				}
 
-               (
-                stream<Utterance> Utterance_Data ;
-                stream<Utterance_File> UtteranceFileStream )
-                  = Custom(Utterances)
-                { 
-                   logic
-                       onTuple Utterances :
-                      { 
-                           list<rstring> tokens = tokenize(id,"_",true);
-						if (length(channel_id) > 0){
-	                         // mutable rstring tempUtterance = utterance;
-	                        submit( {callId = $callCenter + "_" + id, utteranceNumber = utteranceNumber, 
-	                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, 
-	                        	captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, 
-	                        	speakerId = (int32)channel_id, callCenter = $callCenter, 
-	                        	utteranceConfidence = utteranceConfidence, utteranceTokenConfidences = utteranceTokenConfidences/*,
-	                        	utteranceSpeakers = utteranceSpeakers, nBestHypotheses = nBestHypotheses */ }  , Utterance_Data  ); 
-	                        if (size(tokens) > 1){
-		                        submit( {ipaddress = tokens[0],  startingTime = tokens[1], callCenter = $callCenter, utteranceNumber = utteranceNumber, 
-		                        	utteranceStartTime = utteranceStartTime, utteranceEndTime = utteranceEndTime, captureSeconds = captureSeconds,  role = "AGENT", utterance = utterance, speakerId = (int32)channel_id }  , UtteranceFileStream  );
-		                    } 
-						} else {
-							printStringLn("Channel_id empty: " + (rstring) Utterances); 
-						}
+       				}
 
-                      }
-//                      config
-//                      	placement : partitionIsolation; 
-                }
+       				else
+       				{
+       					appTrc(Trace.info, "Channel_id empty as we release." +(rstring) Utterances) ;
+       				}
+
+       			}
+
+       	}
 
 
                // jmsjms : This export needs to eventually go away and be replaced with a messging system 
