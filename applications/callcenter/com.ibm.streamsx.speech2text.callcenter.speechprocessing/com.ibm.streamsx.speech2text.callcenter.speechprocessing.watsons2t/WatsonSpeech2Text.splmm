@@ -61,7 +61,6 @@ composite WatsonSpeech2Text
                packageFile  : $packageFile; 
         }
 
-
        (stream<Utterance> Utterance_Data ; stream<Utterance_File>
        	UtteranceFileStream) = Custom(Utterances)
        	{

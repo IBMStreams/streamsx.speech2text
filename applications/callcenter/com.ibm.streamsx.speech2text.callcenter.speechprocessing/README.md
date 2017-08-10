@@ -26,8 +26,17 @@ application requires an installation of FFMPEG on the system being deployed to.
 ## Environment Setup: 
 
 1. Run ant from the root of this repository to build the com.ibm.streamsx.speech2text and to download/build the correct version of the Network toolkit:
-	ant
-2. Refer to the Configuring your Domain and Instance README at the root of the CallCenter application directory 
+	```
+  ant
+  ```
+	
+2. Add the Speech2Text toolkit to your STREAMS_SPLPATH:
+
+  ```
+  export STREAMS_SPLPATH=/path/to/network/toolkit:/path/to/speech2text/toolkit:$STREAMS_SPLPATH
+  ```
+  
+3. Refer to the Configuring your Domain and Instance README at the root of the CallCenter application directory 
 for domain and instance setup. 
 
 ## Compilation

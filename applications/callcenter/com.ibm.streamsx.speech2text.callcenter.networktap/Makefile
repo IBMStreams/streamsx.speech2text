@@ -25,6 +25,7 @@
 
 SPLC = $(STREAMS_INSTALL)/bin/sc
 #SPLC_FLAGS = -a  -t /home/streamsadmin/IBMStreams-streamsx.network-5fefa2f/com.ibm.streamsx.network:
+
 SPLC_FLAGS = -a
 NETWORK_TOOLKIT=../../../.network-toolkit/streamsx.network-rtp-dev/com.ibm.streamsx.network/
 
