@@ -9,3 +9,5 @@ output/
 bin/
 .toolkitList
 *~
+.network-toolkit
+SpeechFileSink.xml
