@@ -38,7 +38,7 @@ composite Main
 			output
 				Out : packetsReceived = packetsReceived(), packetsDropped =
 					packetsDropped(), packetsProcessed = packetsProcessed(), ipSrcAddr =
-					convertIPV4AddressNumericToString(IPV4_SRC_ADDRESS()), captureSeconds =
+					convertIPV4AddressNumericToString(IPV4_SRC_ADDRESS()), rtpStreamStartTime =
 					CAPTURE_SECONDS(), IP_PROTOCOL = IP_PROTOCOL(), IP_DST_PORT =
 					IP_DST_PORT(), PAYLOAD_LENGTH = PAYLOAD_LENGTH(), PAYLOAD_DATA =
 					PAYLOAD_DATA() ;

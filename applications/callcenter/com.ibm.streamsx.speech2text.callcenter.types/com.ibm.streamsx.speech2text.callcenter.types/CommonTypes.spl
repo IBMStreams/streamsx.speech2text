@@ -10,39 +10,45 @@ use com.ibm.streamsx.network.parse::* ;
  * Type of Stream exported to the "Data Center" by the DataCenterSink application
  */
 type  Utterance	=	
-	tuple<rstring callId, 					// callCenter + ipAddress + captureSeconds -> In an environment where
+	rstring callId, 					// callCenter + ipAddress + rtpStreamStartTime -> In an environment where
 																  // each speaker is on a separate RTP Streams, the callId
 																  // is effectively the ID for that speaker's stream. 
 																  // In the one-speaker to one-stream case, CTI correlation
 																  // must be done. 
-         int32 utteranceNumber, 	// The utterance number for given RTP Stream, [0,1,...]
-         float64 utteranceStartTime, // Seconds of audio processed for a given RTP Stream
+         int32 utteranceNumber, 			// The utterance number for given RTP Stream, [0,1,...]
+         float64 utteranceStartTime, 		// Seconds of audio processed for a given RTP Stream
 																  // up to start of the Utterance
-         float64 utteranceEndTime,// Seconds of audio processed for a given RTP Stream
+         float64 utteranceEndTime,			// Seconds of audio processed for a given RTP Stream
 																  // up to end of the Utterance
-         uint32 captureSeconds,  	// This refers to the capture time in seconds of the first
+         uint32 rtpStreamStartTime,  		// This refers to the capture time in seconds of the first
 																  // RTP packet in the SSRC stream
-         rstring role, 					  // role = "AGENT" -- this is currently useless
-         rstring utterance, 			// The text of a single utterance
-         int32 speakerId, 				// Not used - based on a channel id that is set to 0, since 
+         rstring role,						// role = "AGENT" -- this is currently useless
+         rstring utterance,					// The text of a single utterance
+         int32 speakerId, 					// Not used - based on a channel id that is set to 0, since 
 																  // we only handle a single channel at a time
          rstring callCenter, 				// ID for the call center the utterance is coming from
-         float64 utteranceConfidence, 			// Statistical confidence in the transcription of the utterance
-         list<float64>  utteranceTokenConfidences/*, 	// Statistical confidence in each token/word of the utterance
+         float64 utteranceConfidence, 		// Statistical confidence in the transcription of the utterance
+         list<float64>  utteranceTokenConfidences, // Statistical confidence in each token/word of the utterance
+         boolean rtpStreamComplete/*, 		// Boolean variable set to true for the last utterance in an RTP Stream
          list<int32> utteranceSpeakers, 			// If using diarization, speaker of each token/word
-         list<rstring> nBestHypotheses*/> ; 		// Alternative guesses for the utterance text
-								
+         list<rstring> nBestHypotheses*/ ; 		// Alternative guesses for the utterance text
 
-type Transcript = 
-		rstring callId, 
-		rstring transcript ;
+type CommonCallUtterance = 
+	tuple<rstring commonCallId, 
+			int32 callComplete>, 		// 0 while a call is in progress, a dummy tuple of this type should be
+										// sent with callComplete == 1 when the call reaches a complete state
+			tuple<Utterance utterance>;								
+
+type UtteranceTranscript = 
+		rstring commonCallId, 
+		list<Utterance> utteranceList;
 					
 type PacketType =
         uint64 packetsReceived,             // total number of packet received, as of last metrics interval
         uint64 packetsDropped,              // total number of packet dropped, as of last metrics interval
         uint64 packetsProcessed,            // total number of packets processed by operator, so far 
         rstring ipSrcAddr,
-        uint32 captureSeconds, 
+        uint32 rtpStreamStartTime, 
         uint8 IP_PROTOCOL,                  // IP protocol: 0x01==1 for ICMP, 0x6==6 for TCP, 0x11==17 for UDP
         uint16 IP_DST_PORT,
         uint32 PAYLOAD_LENGTH,              // length of packet payload, following all network headers
@@ -54,7 +60,7 @@ type payload =
 		rstring channel_id,  
 		uint32 ssrc, 
 		uint32 ts, 
-		uint32 captureSeconds, 
+		uint32 rtpStreamStartTime, 
 		uint16 seq,  
 		int32 samples, 
 		blob speech> ; 
@@ -64,7 +70,7 @@ type AudioPacket =
 	rstring channel_id, 
 	uint32 ssrc, 
 	uint32 ts, 
-	uint32 captureSeconds,   
+	uint32 rtpStreamStartTime,   
 	blob speech, 
 	int32 samples, 
 	int32 jobId, 

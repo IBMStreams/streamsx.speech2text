@@ -26,7 +26,7 @@ composite PacketSimulator
 			output
 				Out : ipSrcAddr = convertIPV4AddressNumericToString(IPV4_SRC_ADDRESS()),
 					IP_DST_PORT = IP_DST_PORT(), IP_PROTOCOL = IP_PROTOCOL(),
-					captureSeconds =(uint32) getSeconds(getTimestamp()), PAYLOAD_DATA =
+					rtpStreamStartTime =(uint32) getSeconds(getTimestamp()), PAYLOAD_DATA =
 					PAYLOAD_DATA(), PAYLOAD_LENGTH = PAYLOAD_LENGTH() ;
 		}
 		
