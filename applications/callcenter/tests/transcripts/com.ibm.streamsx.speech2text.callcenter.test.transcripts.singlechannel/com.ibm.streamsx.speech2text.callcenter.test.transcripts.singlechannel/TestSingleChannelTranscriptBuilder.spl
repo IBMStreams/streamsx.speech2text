@@ -2,6 +2,7 @@ namespace com.ibm.streamsx.speech2text.callcenter.test.transcripts.singlechannel
 
 use com.ibm.streamsx.topology.topic::Publish ;
 use com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel::*; 
+use com.ibm.streamsx.speech2text.callcenter.transcripts::*; 
 use com.ibm.streamsx.speech2text.callcenter.types::Utterance ;
 
 composite TestSingleChannelTranscriptBuilder
@@ -11,6 +12,10 @@ composite TestSingleChannelTranscriptBuilder
 		{}
 		
 		() as SingleChannelTranscripts = SingleChannelTranscriptBuilder()
+		{
+		}
+		
+		() as Transcripts = TranscriptBuilder()
 		{
 		}
 	config

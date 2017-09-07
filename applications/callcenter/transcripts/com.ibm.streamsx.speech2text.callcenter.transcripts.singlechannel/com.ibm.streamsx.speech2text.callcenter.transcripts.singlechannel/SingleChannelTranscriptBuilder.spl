@@ -6,10 +6,6 @@ use com.ibm.streamsx.speech2text.callcenter.types::* ;
 
 public composite SingleChannelTranscriptBuilder
 {
-	param
-		expression<boolean> $writeTranscripts : (getSubmissionTimeValue("writeTranscripts", "true") != "false") ;
-		expression<rstring> $transcriptDirectory : getSubmissionTimeValue("transcriptDir","");
-		expression<int32> $transcriptTimeout : (int32) getSubmissionTimeValue("transcriptTimeout","60");
 	graph
 		stream<Utterance> SubscribedUtterances = Subscribe()
 		{
@@ -17,71 +13,38 @@ public composite SingleChannelTranscriptBuilder
 				topic : "callcenter/speechprocessing/utterances" ;
 				streamType : Utterance ;
 		}
-
-		stream<Utterance> PeriodicTriggers = Beacon()
-		{
-			param
-				period : 5.0;
-			output PeriodicTriggers : callId = "trigger"; 
-		}
 		
-		/*
-		 * 
-		 * Aggregates the utterances for a call. If we don't receive any utterances
-		 * for a given call for $transcriptTimeout seconds, we will flush. 
-		 * 
-		 */
-		stream<rstring callId, list<rstring> utteranceList> UtteranceAggregates =
-			Aggregate(SubscribedUtterances,PeriodicTriggers as inputStream)
-		{
-			window
-				inputStream : tumbling, delta(utteranceNumber, 5000), partitioned,
-					partitionAge((float64) $transcriptTimeout) ;
-			param
-				partitionBy : callId ;
-				aggregateEvictedPartitions : true ;
-			output
-				UtteranceAggregates : callId = Any(callId), utteranceList =
-					Collect(utterance) ;
-		}
-
-		stream<Transcript> FlattenedTranscripts = Custom(UtteranceAggregates as
-			inputStream)
+		stream<CommonCallUtterance> MapToCommonCallUtterance = Custom(SubscribedUtterances)
 		{
 			logic
-				onTuple inputStream :
+				onTuple SubscribedUtterances : 
 				{
-					if (callId != "trigger"){
-						// Remove quotes 
-					 	mutable rstring transcript = regexReplace((rstring) utteranceList,"\\\"","",true); 
-					 	// Remove commas
-					 	transcript = regexReplacePerl(transcript,"[\\[,\\]]","",true); //"
-						printStringLn("Transcript: " + transcript); 
-						submit({callId=callId, transcript = transcript}, FlattenedTranscripts);
+					mutable CommonCallUtterance outTuple = {}; 
+					assignFrom(outTuple.utterance, SubscribedUtterances); 
+					outTuple.commonCallId = callId; 
+					outTuple.callComplete = 0;  
+					submit(outTuple, MapToCommonCallUtterance);
+					// we don't want to send "complete" until we have ALL of the utterances
+					// the "flush" tuple will trigger the start of a new partition 
+					// (this is why we don't send the "last utterance" as the trigger)
+					if (rtpStreamComplete == true)
+					{
+						mutable CommonCallUtterance callCompleteTuple = {}; 
+						callCompleteTuple.utterance.utterance = "flush"; 
+						callCompleteTuple.utterance.utteranceStartTime = 10000.0; // make sure this is the "latest" utterance for the sort
+						callCompleteTuple.commonCallId = callId; 
+						callCompleteTuple.callComplete = 1; // indicate call is complete for the aggregation
+						// first flush clears the Sort window
+						submit(callCompleteTuple, MapToCommonCallUtterance);
 					}
+					
 				}
-
 		}
 		
-		stream<Transcript> WriteToFileTranscripts = Functor(FlattenedTranscripts)
+		() as CommonCallUtterancePublisher = Publish(MapToCommonCallUtterance)
 		{
 			param
-				filter : $writeTranscripts ;
-		}
-
-		() as Printer = FileSink(WriteToFileTranscripts as inPort0Alias)
-		{
-			param
-				file : WriteToFileTranscripts.callId + "_{gmtime:%m%d%y}_{id}.txt";
-				suppress : WriteToFileTranscripts.callId; 
-				closeMode : dynamic; 
-				format : csv; 
-		}
-
-		() as TranscriptPublisher = Publish(FlattenedTranscripts)
-		{
-			param
-				topic : "callcenter/transcripts" ;
+				topic : "callcenter/commonCallUtterances" ;
 		}
 
 }
