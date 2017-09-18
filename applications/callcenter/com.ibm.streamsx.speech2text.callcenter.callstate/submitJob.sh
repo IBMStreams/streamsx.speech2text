@@ -4,9 +4,9 @@ STREAMS_DEFAULT_DOMAIN=$STREAMS_DOMAIN_ID
 STREAMS_DEFAULT_IID=$STREAMS_INSTANCE_ID
 
 # Modify the SAB file to the one of interest
-SAB_FILE=output/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel.SingleChannelTranscriptBuilder/BuildConfig/com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel.SingleChannelTranscriptBuilder.sab
+SAB_FILE=output/com.ibm.streamsx.speech2text.callcenter.callstate.CallStateService/BuildConfig/com.ibm.streamsx.speech2text.callcenter.callstate.CallStateService.sab
 # Modify the job name to the desired one 
-JOB_NAME=SingleChannelTranscripts
+JOB_NAME=CallStateService
 # Job config file is used for dynamic tagging
 JOB_CONFIG_FILE="etc/jobConfig.json" 
 

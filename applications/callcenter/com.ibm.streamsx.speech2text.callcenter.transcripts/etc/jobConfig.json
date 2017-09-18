@@ -3,8 +3,8 @@
 		"configInstructions": {
 			"convertTagSet": [{
 				
-					"originalTagSet": ["transcripts"],
-					"targetTagSet": ["setup"]
+					"originalTagSet": ["transcript"],
+					"targetTagSet": [""]
 				
 			}]
 		}

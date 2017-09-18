@@ -1,0 +1,155 @@
+namespace com.ibm.streamsx.speech2text.callcenter.transcripts;
+
+use com.ibm.streamsx.topology.topic::Subscribe ;
+use com.ibm.streamsx.topology.topic::Publish ;
+use com.ibm.streamsx.speech2text.callcenter.types::* ;
+
+
+/**
+ * Subscription to callcenter/commonCallUtterances - This microservice 
+ * expects to receive a "flush" tuple with the callComplete attribute
+ * set to 1 when the call is complete. 
+ * 
+ * It publishes to the callcenter/transcripts topic complete text transcripts of type UtteranceTranscript
+ * 
+ * @param writeTranscripts (default: true) Whether or not to write transcripts to file. 
+ * @param transcriptDirectory (default: "") Where transcripts should be written.  
+ * @param aggregatePartitionAgeLimit (default: 120s) Amount of time without receiving an utterance before we consider a transcript "aged out". This only matters in the case where a call doesn't receive a "release" event. 
+ */
+public composite TranscriptBuilder {
+	param
+		expression<boolean> $writeTranscripts : (getSubmissionTimeValue("writeTranscripts", "true") == "true") ;
+		expression<rstring> $transcriptDirectory : getSubmissionTimeValue("transcriptDir","");
+		expression<int32> $aggregatePartitionAgeLimit : (int32) getSubmissionTimeValue("aggregatePartitionAgeLimit","120");
+	graph
+	
+		/*
+		 * Subscription to callcenter/commonCallUtterances - This microservice 
+		 * expects to receive a "flush" tuple with the callComplete attribute
+		 * set to 1 when the call is complete. 
+		 */
+		stream<CommonCallUtterance> CommonCallUterances = Subscribe()
+		{
+			param
+				topic : "callcenter/commonCallUtterances" ;
+				streamType : CommonCallUtterance ;
+		}
+		
+		/*
+		 * We need this because we need to flush the aggregate operator as well 
+		 * as the sort operator (we only expect one "extra" callComplete tuple)
+		 */
+		stream<CommonCallUtterance> GenerateExtraFlushTuple 
+			= Custom(CommonCallUterances as inStream)
+		{
+			logic
+				onTuple CommonCallUterances : 
+				{
+					if (inStream.callComplete == 0)
+					{
+						submit(inStream, GenerateExtraFlushTuple);
+					} else 
+					{
+						// submit the tuple as well as an extra "flush" tuple
+						submit(inStream, GenerateExtraFlushTuple);
+						// increment since we need a 1u difference between the previous "flush" tuple
+						inStream.callComplete++; 
+						submit(inStream, GenerateExtraFlushTuple);
+					}
+				}
+		}
+		
+		/*
+		 * This beacon triggers the sort and aggregate operators. 
+		 * It is important that whatever tuple is being sent, will get released by both. 
+		 */
+		stream<CommonCallUtterance> PeriodicTriggers = Beacon()
+		{
+			param
+				period : 5.0;
+			// Need to send iterationCount out for callComplete so that we don't have an 
+			// ever-growing trigger partition
+			output PeriodicTriggers : commonCallId = "trigger", callComplete = (int32) IterationCount(); 
+		}
+		
+		/*
+		 * The current Sort operator will 
+		 * drop windows that get evicted after the "partitionAge" is reached
+		 * Until we have a similar feature to the aggregate evicted partitions, 
+		 * we have to rely on actually getting the delta in "callComplete" in order
+		 * to trigger the flushing of the partition. Timeouts should be handled by 
+		 * upstream operators.  
+		 */
+		stream<CommonCallUtterance> SortedUtterances =
+			Sort(GenerateExtraFlushTuple, PeriodicTriggers as inputStream)
+		{
+			window
+				inputStream : tumbling, delta(callComplete, 0), partitioned,
+					partitionAge((float64) $aggregatePartitionAgeLimit) ;
+			param
+				partitionBy : commonCallId ;
+				// sort by the true time of the utterance starting
+				sortBy : ((float64) utterance.rtpStreamStartTime + utterance.utteranceStartTime); 
+				
+
+		}
+		
+		/*
+		 * 
+		 * Aggregates the utterances for a call. 
+		 * The primary eviction of a partition should be triggered by receiving a callComplete = 1
+		 * If we don't receive any utterances
+		 * for a given call for $transcriptTimeout seconds, we will age out that partition to prevent 
+		 * a memory leak from occurring. 
+		 * 
+		 */
+		stream<UtteranceTranscript> UtteranceAggregates =
+			Aggregate(SortedUtterances as inputStream)
+		{
+			window
+				inputStream : tumbling, delta(callComplete, 0), partitioned,
+					partitionAge((float64) $aggregatePartitionAgeLimit) ;
+			param
+				partitionBy : commonCallId ;
+				// we are not going to aggregate paritions that don't meet
+				// the delta(callComplete, 0) condition because we cannot
+				// rely on similar behavior from the sort operator
+				// aggregateEvictedPartitions : true ;
+			output
+				UtteranceAggregates : commonCallId = Any(commonCallId), utteranceList =
+					Collect(utterance) ;
+		}
+		
+		
+		/*
+		 * Unfortunately we need this to filter out the flushing of partitions that age out
+		 * with only the 
+		 */
+		stream<UtteranceTranscript> FilterDummyTranscripts = Filter(UtteranceAggregates)
+		{
+			param
+				filter : commonCallId != "trigger"; 
+		}
+		
+		stream<UtteranceTranscript> WriteToFileTranscripts = Functor(FilterDummyTranscripts)
+		{
+			param
+				filter : $writeTranscripts ;
+		}
+
+		() as Printer = FileSink(WriteToFileTranscripts as inPort0Alias)
+		{
+			param
+				file : $transcriptDirectory + WriteToFileTranscripts.commonCallId + "_{gmtime:%m%d%y}_{id}.txt";
+				suppress : WriteToFileTranscripts.commonCallId; 
+				closeMode : dynamic; 
+				format : csv; 
+		}
+
+		() as TranscriptPublisher = Publish(FilterDummyTranscripts)
+		{
+			param
+				topic : "callcenter/transcripts" ;
+		}
+	
+}

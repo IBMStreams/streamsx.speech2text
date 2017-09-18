@@ -1,0 +1,184 @@
+/*
+# Licensed Materials - Property of IBM
+# Copyright IBM Corp. 2017
+*/
+namespace com.ibm.streamsx.speech2text.callcenter.callstate;
+
+use com.ibm.streamsx.store.distributed::*;
+
+/**
+ * This composite leverages DPS (most likely Redis) to: 
+ * 1. Read existing state/history for a call.
+ * 2. Modify current state/history with the latest event we received
+ * 3. Send that current state/history out as a tuple as well as Updating the DPS database with the updated state/history. 
+ * 
+ * Modifications to action handling should be 
+ * 
+ * Given the nature of this composite, it is very important that the threading be done as follows: 
+ * 
+ * The threading model=manual is important because the DpsGet and DpsInsert
+ * are done in separate operators, therefore there is the potential to perform a Get on 
+ * a call that is already in the process of having its state modified, but not yet updated (inserted). 
+ * 
+ * Parallelization is only likely to help if you are using a Redis cluster since the constraint on performance
+ * will come from Redis being about to handle the requests. 
+ * 
+ * 
+ * It is also important that if you parallelize this composite, that all events from the same call will get routed
+ * to the same channel. 
+ * 
+ * See the example below: 
+	@parallel(width=$dpsReadModifyUpdateWidth, partitionBy=[{port=TranslatedCtiEvents, attributes=[commonCallId]}])
+	@threading(model=manual)
+	stream<CTIEventWithCallStateAndEventHistoryDps> RedisPutResults
+		= ReadModifyUpdateStateAndJourney(TranslatedCtiEvents)
+		{
+			param
+				ttl : (uint32) $maxCallTime; 
+		}
+ * 
+ * The design choice of using Redis instead of an in-memory map was because: 
+ * 1. It simplifies removal of expired calls--TTLs let Redis cleanup key-value pairs rather than needing to cleanse a map of old data. 
+ * 2. Other applications can query Redis for call state, journey, events, etc
+ * 
+ * The reason we chose a "ReadModifyUpdate" rather than only writing results was so that we could handle 
+ * state transitions that require knowledge of past state of the call (current implementation has each action only mapping to a single possible state). 
+ * 
+ */
+public composite ReadModifyUpdateStateAndJourney(input In; output Out)
+{
+	param
+		expression<rstring> $NO_CHANGE : "NO-STATE-CHANGE";
+		expression<rstring> $IGNORE_ACTION : "IGNORE-ACTION";
+		expression<uint32> $ttl; 
+		expression<map<rstring,rstring>> $actionToStateMap :
+						{
+							"CALLESTABLISHED" : "2-PARTY_ON_LINE",
+							"RTPSTARTED" : "NO-STATE-CHANGE", 
+							"RTPSTOPPED" : "NO-STATE-CHANGE",
+							"HOLD" : "ON_HOLD", 
+							"RETRIEVE" : "2-PARTY_ON_LINE",
+							"CALL_TRANSFERRED" : "CALL_TRANSFERRED", 
+							"CALL_CONFERENCED" : "CALL_ON_CONFERENCE", 
+							"CALLFAILED" : "COMPLETE", 
+							"RELEASE" : "COMPLETE"
+						}; 
+	graph
+		stream<CTIEventWithCallStateAndEventHistoryDps> EventsWithHistory 
+			= DpsGetTTLWithReconnect(In)
+		{
+			param
+				keyEncoded : false;
+				valueEncoded : false; 
+				keyAttribute : commonCallId; 
+				outputType : CTIEventWithCallStateAndEventHistoryDps; 
+		}
+		
+		stream<CTIEventWithCallStateAndEventHistoryDps> UpdatedCallStateEvents 
+			= Custom(EventsWithHistory as events)
+		{
+			logic
+				state : 
+				{
+					map<rstring,rstring> actionToStateMap = $actionToStateMap; 
+					rstring numUnrecognizedActionsMetricName = "numUnrecognizedActions"; 
+					boolean initMetric = initializeMetric(numUnrecognizedActionsMetricName, 
+						"Number of unrecognized actions that couldn't be mapped to a state change.", 
+						0l); 
+					mutable int64 numUnrecognizedActions = 0; 
+				}
+				onTuple events : 
+				{
+					// Check if we find the call in the DB
+					// If it's a new call, everything is already null
+					mutable CTIEventWithCallStateAndEventHistoryDps outTuple = {}; 
+					assignFrom(outTuple, events); 
+					
+					mutable rstring stateTransition = getStateTransition(events.eventAction, events.value.state, actionToStateMap); 
+					
+					// update state based on the action
+					// see if we recognize the action
+					if (stateTransition != "")
+					{
+						// Check if this is an action that requires state-update 
+						// since some actions are recognized, but don't require updating of current state
+						if (stateTransition != $NO_CHANGE){
+							outTuple.value.state = stateTransition;							
+							// add the state to our "history" of the call state
+							appendM(outTuple.value.callStateJourney, outTuple.value.state); 
+						}
+						
+						// Add events and action to the "history" for the call
+						appendM(outTuple.value.eventsJson, events.eventJson); 
+						appendM(outTuple.value.callActionJourney, events.eventAction);
+						appendM(outTuple.value.eventTimes, events.eventTime);
+						// Only submit after recognized actions
+						submit(outTuple, UpdatedCallStateEvents);
+					} else {
+						numUnrecognizedActions++; 
+						setCustomMetricValue(numUnrecognizedActionsMetricName,numUnrecognizedActions);
+						appTrc(Trace.error,"Don't have a set actionToState mapping for action: " + events.eventAction);
+					}
+					
+					
+				}
+		}
+		
+		stream<tuple<uint32 ttl>, tuple<CTIEventWithCallStateAndEventHistoryDps>> PerparedForDpsEvents
+			= Functor(UpdatedCallStateEvents)
+		{
+			output PerparedForDpsEvents : ttl = $ttl, value = UpdatedCallStateEvents.value; 
+		} 
+		
+		stream<CTIEventWithCallStateAndEventHistoryDps> Out 
+			= DpsPutTTLWithReconnect(PerparedForDpsEvents)
+		{
+			param
+				keyEncoded : false;
+				valueEncoded : false; 
+				keyAttribute : commonCallId; 
+				valueAttribute : value; 
+				ttlAttribute : ttl; 
+				outputType : CTIEventWithCallStateAndEventHistoryDps; 
+		}
+	config
+		placement : partitionColocation("readModifyUpdate"); 
+}
+
+
+/*
+ * This function returns the state transition. 
+ * 
+ * Currently, an action only results in one kind of state. If an action can have multiple possible effects on 
+ * the state transition depending on the previousState, that logic should be implemented in this function. 
+ */
+public rstring getStateTransition(rstring eventAction, rstring previousState, map<rstring,rstring> actionToStateMap)
+{
+	mutable rstring stateTransition = ""; 
+	rstring NO_CHANGE = "NO-STATE-CHANGE";
+	if (!has(actionToStateMap, eventAction))
+	{
+		// unrecognized action, so we will return an empty string. 
+		appTrc(Trace.error,"Don't have a set actionToState mapping for action: " + eventAction);
+	} else
+	{
+		// Currently this assumes direct mapping of action to state
+		// If we have actions that affect state differently depending on 
+		// the current state, that logic must be placed here. 
+		stateTransition = actionToStateMap[eventAction]; 
+	}
+	
+	// There is no update to the state if we are currently in that state
+	if (previousState == stateTransition)
+	{
+		stateTransition = NO_CHANGE; 
+	}
+	
+	return stateTransition; 
+}
+
+stateful boolean initializeMetric(rstring name, rstring desc, int64 val)
+{
+	createCustomMetric(name, desc, Sys.Counter, val); 
+	return true; 
+}

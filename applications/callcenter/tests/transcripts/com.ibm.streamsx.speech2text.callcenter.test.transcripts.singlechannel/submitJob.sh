@@ -64,7 +64,7 @@ fi
 
 paramsArg=${params}
 
-cmd="streamtool submitjob --jobname $JOB_NAME -d $STREAMS_DEFAULT_DOMAIN -i $STREAMS_DEFAULT_IID $paramsArg $jobConfig $SAB_FILE"
+cmd="streamtool submitjob -C fusionScheme=legacy --jobname $JOB_NAME -d $STREAMS_DEFAULT_DOMAIN -i $STREAMS_DEFAULT_IID $paramsArg $jobConfig $SAB_FILE"
 
 echo $cmd;
 

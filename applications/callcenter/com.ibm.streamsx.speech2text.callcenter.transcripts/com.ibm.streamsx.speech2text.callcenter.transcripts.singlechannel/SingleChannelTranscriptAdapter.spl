@@ -1,0 +1,51 @@
+namespace com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel ;
+
+use com.ibm.streamsx.topology.topic::Subscribe ;
+use com.ibm.streamsx.topology.topic::Publish ;
+use com.ibm.streamsx.speech2text.callcenter.types::* ;
+
+public composite SingleChannelTranscriptAdapter
+{
+	graph
+		stream<Utterance> SubscribedUtterances = Subscribe()
+		{
+			param
+				topic : "callcenter/speechprocessing/utterances" ;
+				streamType : Utterance ;
+		}
+		
+		stream<CommonCallUtterance> MapToCommonCallUtterance = Custom(SubscribedUtterances)
+		{
+			logic
+				onTuple SubscribedUtterances : 
+				{
+					mutable CommonCallUtterance outTuple = {}; 
+					assignFrom(outTuple.utterance, SubscribedUtterances); 
+					outTuple.commonCallId = callId; 
+					outTuple.callComplete = 0;  
+					submit(outTuple, MapToCommonCallUtterance);
+					// we don't want to send "complete" until we have ALL of the utterances
+					// the "flush" tuple will trigger the start of a new partition 
+					// (this is why we don't send the "last utterance" as the trigger)
+					if (rtpStreamComplete == true)
+					{
+						mutable CommonCallUtterance callCompleteTuple = {}; 
+						callCompleteTuple.utterance.utterance = "flush"; 
+						callCompleteTuple.utterance.utteranceStartTime = 10000.0; // make sure this is the "latest" utterance for the sort
+						callCompleteTuple.commonCallId = callId; 
+						callCompleteTuple.callComplete = 1; // indicate call is complete for the aggregation
+						// first flush clears the Sort window
+						submit(callCompleteTuple, MapToCommonCallUtterance);
+					}
+					
+				}
+		}
+		
+		() as CommonCallUtterancePublisher = Publish(MapToCommonCallUtterance)
+		{
+			param
+				topic : "callcenter/commonCallUtterances" ;
+		}
+
+}
+

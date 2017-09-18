@@ -4,7 +4,7 @@
 // * others. All Rights Reserved. *
 // *******************************************************************************
 -->
-<project name="streamsx.messaging" default="all" basedir=".">
+<project name="streamsx.speech2text" default="all" basedir=".">
 	<description>
         Build file for streamsx.speech2text project, built the toolkits and samples.
     </description>
@@ -14,13 +14,16 @@
 	<property name="tmp" location="tmp" />
 	<property name="network-dir" location=".network-toolkit"/>
 	<property name="network-toolkit" location="${network-dir}/streamsx.network-rtp-dev/com.ibm.streamsx.network"/>
-	
-	<target name="all" depends="toolkit,network-toolkit-dep" />
+    <property name="dps-dir" location=".dps-toolkit"/>
+    <property name="dps-toolkit" location="${dps-dir}/streamsx.dps-3.2.1/"/>
+
+	<target name="all" depends="toolkit,network-toolkit-dep,dps-toolkit-dep" />
 	
 	<target name="clean" description="clean up">
 		<ant dir="${toolkit}" target="clean" />
 		<delete dir="${tmp}" />
 		<delete dir="${network-dir}" />
+		<delete dir="${dps-dir}" />
 	</target>
 	
 	<target name="toolkit" description="Build any code and index the toolkit.">
@@ -34,6 +37,18 @@
 		/>
 		<unzip src="${network-dir}/rtp-dev.zip" dest="${network-dir}"/>
 		<ant dir="${network-toolkit}" target="all" />
+	</target>
+	
+	<target name="dps-toolkit-dep" description="Download and build the dps-toolkit-dependency.">
+		<mkdir dir="${dps-dir}"/>
+		<get src="https://github.com/IBMStreams/streamsx.dps/archive/v3.2.1.zip" 
+			dest="${dps-dir}"
+		/>
+		<exec dir="${dps-dir}" executable="unzip">
+			<arg value="v3.2.1.zip" />
+		</exec>
+		<exec dir="${dps-toolkit}" executable="make">
+		</exec>
 	</target>
 	
 </project>

@@ -2,16 +2,29 @@ namespace com.ibm.streamsx.speech2text.callcenter.test.transcripts.singlechannel
 
 use com.ibm.streamsx.topology.topic::Publish ;
 use com.ibm.streamsx.speech2text.callcenter.transcripts.singlechannel::*; 
+use com.ibm.streamsx.speech2text.callcenter.transcripts::*; 
 use com.ibm.streamsx.speech2text.callcenter.types::Utterance ;
 
 composite TestSingleChannelTranscriptBuilder
 {
+	param
+		expression<boolean> $writeTranscripts : (getSubmissionTimeValue("writeTranscripts", "true") == "true") ;
+		expression<rstring> $transcriptDirectory : getSubmissionTimeValue("transcriptDir","");
+		expression<int32> $aggregatePartitionAgeLimit : (int32) getSubmissionTimeValue("aggregatePartitionAgeLimit","120");
 	graph
 		() as SendUtterances = PublishUtterancesFromFile()
 		{}
 		
-		() as SingleChannelTranscripts = SingleChannelTranscriptBuilder()
+		() as SingleChannelTranscripts = SingleChannelTranscriptAdapter()
 		{
+		}
+		
+		() as Transcripts = TranscriptBuilder()
+		{
+			param
+				writeTranscripts : $writeTranscripts;
+				transcriptDirectory : $transcriptDirectory; 
+				aggregatePartitionAgeLimit : $aggregatePartitionAgeLimit; 
 		}
 	config
 		// tag is overridden using job config

@@ -1,0 +1,12 @@
+namespace com.ibm.streamsx.speech2text.callcenter.callstate;
+
+use com.ibm.streamsx.speech2text.callcenter.types::CTIEventGeneralized; 
+
+type CallStateAndEventHistoryValue = 
+	tuple<rstring state, list<rstring> callStateJourney, list<rstring> callActionJourney, list<rstring> eventsJson, list<int64> eventTimes>;
+
+type CTIEventWithCallStateAndEventHistoryDps = 
+	tuple<CTIEventGeneralized>, tuple<CallStateAndEventHistoryValue value> ;
+
+type CallStateAndJourney = 
+	tuple<rstring commonCallId, rstring state, list<rstring> callStateJourney, list<rstring> callActionJourney, list<rstring> eventsJson, list<int64> eventTimes>;
