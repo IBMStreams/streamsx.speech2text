@@ -1,0 +1,110 @@
+/*
+# Licensed Materials - Property of IBM
+# Copyright IBM Corp. 2017
+*/
+namespace com.ibm.streamsx.speech2text.callcenter.callstate ;
+
+use com.ibm.streamsx.topology.topic::*; 
+use com.ibm.streamsx.speech2text.callcenter.types::CTIEventGeneralized; 
+
+/**
+ * CallStateService 
+ * The purpose of this service is to provide the current state and "journey" of a call. We take as input a generalized form of a 
+ * CTI event, requiring that a commonCallId be provided, as well as pulling out the Action and event time from the event. This allows 
+ * for the integration of events of multiple formats. We can still maintain a record of the complete event details as part of the journey by 
+ * storing the JSON representation of each event. 
+ * 
+ * Sample CTIEventGeneralized subscribed to on "callcenter/generalizedCtiEvents" topic: 
+ * 
+ * 	"123456789","CALLESTABLISHED",152519123,"\{"event":"json"\}"
+ * 
+ * Sample output published to "callcenter/callStateChanges" topic: 
+ * 	"123456789","COMPLETE",["2-PARTY_ON_LINE","COMPLETE"],["CALLESTABLISHED","RTPSTARTED","RTPSTARTED","RTPSTOPPED","RTPSTOPPED","RELEASE"],["event1","event2","event3","event4","event5","event6"],[1500312750,1500312750,1500312750,1500312761,1500312761,1500312761]
+ * 
+ * If you forward all event JSON, for events of average size 1k bytes you should expect every call to take up ~10k bytes in Redis (since there will typically be 6+ events associates with every call). 
+ * The best way to estimate usage is to test with real data and examine the avgKeyValueSizeBytes metrics from the DpsPut operator from the ReadModifyUpdateStateAndJourney composite. 
+ * 
+ * @param redisCallRetentionTime (Default: 300s) This parameter controls how long calls exist in Redis since the last event received before being cleaned up. The short default time is meant for batch processing. 
+ * @param maxCallTime (Default: 300s) The maximum call duration to be expected. This parameter controls how long we wait for more events after receiving an event before considering a call complete. 
+ * @param journeyAggregationWindowTime (Default: 120s) The length of time we maintain partitions of all observed "Call Journeys" (both action and state) before tumbling/flushing all partitions (which contain counts and average call time for each journey). 
+ * @param actionToStateMap This map is used to map incoming actions to their effect on the state of the call. The idea being that 1:1 action:state mappings are taken care of. Logic for more complicated state transitions must be implemented. i.e. If one action can result in multiple states. 
+ */
+public composite CallStateService()
+{ 
+	param
+		expression<float64> $redisCallRetentionTime : (float64) getSubmissionTimeValue("redisCallRetentionTime" , "300.0"); 
+		expression<float64> $maxCallTime : (float64) getSubmissionTimeValue("maxCallTime" , "300.0"); 
+		expression<float64> $journeyAggregationWindowTime : (float64) getSubmissionTimeValue("journeyAggregationWindowTime", "600");
+		expression<map<rstring,rstring>> $actionToStateMap :
+						{
+							"CALLESTABLISHED" : "2-PARTY_ON_LINE",
+							"RTPSTARTED" : "NO-STATE-CHANGE", 
+							"RTPSTOPPED" : "NO-STATE-CHANGE",
+							"HOLD" : "ON_HOLD", 
+							"RETRIEVE" : "2-PARTY_ON_LINE",
+							"CALL_TRANSFERRED" : "CALL_TRANSFERRED", 
+							"CALL_CONFERENCED" : "CALL_ON_CONFERENCE", 
+							"CALLFAILED" : "COMPLETE", 
+							"RELEASE" : "COMPLETE"
+						}; 
+		// expression<int32> $dpsReadModifyUpdateWidth : 2; 
+	graph
+			
+		stream<CTIEventGeneralized> TranslatedCtiEvents = Subscribe()
+		{
+			param
+				topic : "callcenter/generalizedCtiEvents"; 
+				streamType : CTIEventGeneralized; 
+		}
+		
+		/*
+		 * The threading model=manual is important because the DpsGet and DpsInsert
+		 * are done in separate operators, therefore there is the potential to perform a Get on 
+		 * a call that is already in the process of having its state modified, but not yet updated (inserted). 
+         * Parallelization is only likely to help if you are using a Redis cluster since the constraint on performance
+         * will come from Redis being about to handle the requests. 
+         * 
+		 */
+		// @parallel(width=$dpsReadModifyUpdateWidth, partitionBy=[{port=TranslatedCtiEvents, attributes=[commonCallId]}])
+		@threading(model=manual)
+		stream<CTIEventWithCallStateAndEventHistoryDps> RedisPutResults
+			= ReadModifyUpdateStateAndJourney(TranslatedCtiEvents)
+			{
+				param
+					ttl : (uint32) $redisCallRetentionTime; 
+					actionToStateMap : $actionToStateMap; 
+			}
+		
+		stream<CallStateAndJourney>
+			UpdatedCallState = Functor(RedisPutResults)
+		{
+			output UpdatedCallState : 
+				state = value.state, 
+				callStateJourney = value.callStateJourney,
+				callActionJourney = value.callActionJourney, 
+				eventsJson = value.eventsJson,
+				eventTimes = value.eventTimes; 
+		}
+			
+		stream<CallStateAndJourney>
+			FinalCallStateAndJourney = CallJourneyAggregate(UpdatedCallState)
+		{
+			param
+				maxCallTime : $maxCallTime; 
+		}
+		
+		() as CallJourneyStatisticSink = CallJourneyStatisticAggregators(FinalCallStateAndJourney)
+		{
+			param
+				journeyAggregationWindowTime : $journeyAggregationWindowTime; 
+		}
+		
+		() as CallStatePublisher = Publish(UpdatedCallState)
+		{
+			param
+				topic : "callcenter/callStateChanges"; 
+		}
+
+
+		
+}

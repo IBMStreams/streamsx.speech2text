@@ -1,0 +1,87 @@
+/*
+# Licensed Materials - Property of IBM
+# Copyright IBM Corp. 2017
+*/
+namespace com.ibm.streamsx.speech2text.callcenter.callstate;
+
+/**
+ * Receives call journey summaries of calls and performs aggregations on the state transition journey as well as the 
+ * action journey. 
+ * 
+ * Sample input: 
+ * 	CallStateAndJourney = 
+ * 	tuple<rstring commonCallId, rstring state, list<rstring> callStateJourney, list<rstring> callActionJourney, list<rstring> eventsJson, list<int64> eventTimes>;
+ *
+ * 	"123456789","COMPLETE",["2-PARTY_ON_LINE","COMPLETE"],["CALLESTABLISHED","RTPSTARTED","RTPSTARTED","RTPSTOPPED","RTPSTOPPED","RELEASE"],["","","","","",""],[1710277450,1710277450,1710277450,1710277461,1710277461,1710277461]
+ * 
+ * @param journeyAggregationWindowTime (Default: 600.0s) The length of time we maintain partitions of all observed "Call Journeys" (both action and state) before tumbling/flushing all partitions (which contain counts and average call time for each journey). 
+ */
+public composite CallJourneyStatisticAggregators(input CallSummaries)
+{
+	param
+		expression<float64> $journeyAggregationWindowTime : 600.0;
+	graph 
+		stream<rstring commonCallId, rstring callStateJourney, rstring callActionJourney, int64 callDuration>
+			FlattenedCallSummaries = Functor(CallSummaries)
+		{
+			output FlattenedCallSummaries : 
+				callStateJourney = (rstring) callStateJourney,
+				callActionJourney = (rstring) callActionJourney,
+				callDuration = eventTimes[size(eventTimes) - 1] - eventTimes[0]; 
+		}
+		
+		
+		stream<rstring commonCallId, rstring callStateJourney, rstring callActionJourney, int64 callDuration>
+			WakeUpTuples2 = Beacon()
+		{
+			param
+				period : 5.0; 
+			output WakeUpTuples2: commonCallId = "flushTuple", callStateJourney = "flushTuple", callActionJourney = "flushTuple"; 
+		}
+		
+		/*
+		 * Aggregate to only get the final values from each call (will include journey)
+		 */
+		stream<rstring callStateJourney, int32 count, int64 avgCallDuration>
+			CallTypeCounts = Aggregate(FlattenedCallSummaries, WakeUpTuples2)
+		{
+			window FlattenedCallSummaries  
+			: tumbling, time($journeyAggregationWindowTime), partitioned;
+			param
+				partitionBy : callStateJourney; 
+			output CallTypeCounts : 
+				callStateJourney = Any(callStateJourney)
+				, count = Count(), avgCallDuration = Average(callDuration);
+		}
+		
+		() as StatPrinter = FileSink(CallTypeCounts as In)
+		{
+			param
+				file : "callTypeCounts.csv"; 
+				flush : 1u; 
+		}
+		
+		/*
+		 * Aggregate to only get the final values from each call (will include journey)
+		 */
+		stream<rstring callActionJourney, int32 count, int64 avgCallDuration>
+			CallActionTypeCounts = Aggregate(FlattenedCallSummaries, WakeUpTuples2)
+		{
+			window FlattenedCallSummaries  
+			: tumbling, time($journeyAggregationWindowTime), partitioned;
+			param
+				partitionBy : callActionJourney; 
+			output CallActionTypeCounts : 
+				callActionJourney = Any(callActionJourney)
+				, count = Count(), avgCallDuration = Average(callDuration);
+		}
+		
+		
+		() as StatActionPrinter = FileSink(CallActionTypeCounts as In)
+		{
+			param
+				file : "callActionTypeCounts.csv"; 
+				flush : 1u; 
+		}
+}
+

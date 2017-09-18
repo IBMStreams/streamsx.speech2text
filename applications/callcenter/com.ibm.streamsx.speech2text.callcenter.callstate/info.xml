@@ -19,5 +19,9 @@
       <common:name>com.ibm.streamsx.topology</common:name>
       <common:version>[1.4.4,2.0.0)</common:version>
     </info:toolkit>
+    <info:toolkit>
+      <common:name>com.ibm.streamsx.speech2text.callcenter.types</common:name>
+      <common:version>[1.0.0,2.0.0)</common:version>
+    </info:toolkit>
   </info:dependencies>
 </info:toolkitInfoModel>

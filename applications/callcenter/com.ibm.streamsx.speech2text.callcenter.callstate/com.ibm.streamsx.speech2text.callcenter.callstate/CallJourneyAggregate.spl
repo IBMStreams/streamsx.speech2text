@@ -1,0 +1,62 @@
+/*
+# Licensed Materials - Property of IBM
+# Copyright IBM Corp. 2017
+*/
+namespace com.ibm.streamsx.speech2text.callcenter.callstate;
+
+/**
+ * Receives event updates for every call and holds onto the "last" update, as well as
+ * computing the time of the call. 
+ * 
+ * The method is that rather than writing every event update to disk, we hold onto a call until
+ * we believe it is complete, at which time we "age out" the partition holding the latest update to 
+ * the call journey
+ * 
+ * TODO: This can be made more event-based to make sure that we flush in the event of a "RELEASE" action/state
+ * 
+ * @param maxCallTime (default 10 * 60 seconds) This should be the maximum length of calls you want to capture journeys for. 
+ * This parameter is used to control timing out of each call's values within the various data structures it is held in. 
+ * 
+ */
+public composite CallJourneyAggregate(input UpdatedCallState; output CallSummaries)
+{
+	param
+		expression<float64> $maxCallTime : 10.0 * 60.0; 
+	graph
+		stream<CallStateAndJourney>
+			WakeUpTuples = Beacon()
+		{
+			param
+				period : 5.0; 
+			output WakeUpTuples: commonCallId = "flushTuple", callStateJourney = ["flushTuple"]; 
+		}
+		
+		
+		/*
+		 * Aggregate to only get the final values from each call (will include journey)
+		 */
+		stream<CallStateAndJourney>
+			CallSummaries = Aggregate(UpdatedCallState, WakeUpTuples)
+		{
+			window UpdatedCallState : tumbling, time(1000000000.0), partitioned, partitionAge((float64) $maxCallTime) ;
+			param
+				partitionBy : commonCallId;
+				aggregateEvictedPartitions : true;  
+				
+			output CallSummaries : 
+				commonCallId = Last(commonCallId)
+				, state = Last(state)
+				, callStateJourney = Last(callStateJourney)
+				, callActionJourney = Last(callActionJourney)
+				, eventsJson = Last(eventsJson)
+				, eventTimes = Last(eventTimes); 
+		}
+		
+		() as SummaryPrinter = FileSink(CallSummaries as In)
+		{
+			param
+				file : "callSummaries.csv"; 
+				flush : 1u; 
+		}
+	
+}
