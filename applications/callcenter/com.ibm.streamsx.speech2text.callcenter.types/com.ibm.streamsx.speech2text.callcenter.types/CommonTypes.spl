@@ -1,16 +1,14 @@
+/*
+# Licensed Materials - Property of IBM
+# Copyright IBM Corp. 2017
+*/
 namespace com.ibm.streamsx.speech2text.callcenter.types;
 
-use com.ibm.streamsx.network.ipv4::* ;
-use com.ibm.streamsx.network.ipv6::* ;
-use com.ibm.streamsx.network.source::* ;
-use com.ibm.streamsx.network.parse::* ;
-
-	
 /*
  * Type of Stream exported to the "Data Center" by the DataCenterSink application
  */
 type  Utterance	=	
-	rstring callId, 					// callCenter + ipAddress + rtpStreamStartTime -> In an environment where
+		rstring callId, 					// callCenter + ipAddress + rtpStreamStartTime -> In an environment where
 																  // each speaker is on a separate RTP Streams, the callId
 																  // is effectively the ID for that speaker's stream. 
 																  // In the one-speaker to one-stream case, CTI correlation
@@ -75,3 +73,12 @@ type AudioPacket =
 	int32 samples, 
 	int32 jobId, 
 	uint32 hostId ; 
+
+// To make this type adaptable, we want to force the attributes that we require,
+// but let the actual event be a JSON string
+// {commonCallId="123456789",eventAction="CALLESTABLISHED",eventTime=152519123,eventJson="{"event":"json"}"}
+type CTIEventGeneralized = 
+	tuple<rstring commonCallId, 	// An id that identifies events in the same call.
+		rstring eventAction, 		// The action in the event that will be used to compute the state transition
+		int64 eventTime, 			// The time of the event. This is used to track call duration. 
+		rstring eventJson>;  		// JSON containing the full event details. This allows for multiple telephony implementations
