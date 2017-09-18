@@ -5,15 +5,26 @@ use com.ibm.streamsx.topology.topic::Publish ;
 use com.ibm.streamsx.speech2text.callcenter.types::* ;
 
 
+/**
+ * Subscription to callcenter/commonCallUtterances - This microservice 
+ * expects to receive a "flush" tuple with the callComplete attribute
+ * set to 1 when the call is complete. 
+ * 
+ * It publishes to the callcenter/transcripts topic complete text transcripts of type UtteranceTranscript
+ * 
+ * @param writeTranscripts (default: true) Whether or not to write transcripts to file. 
+ * @param transcriptDirectory (default: "") Where transcripts should be written.  
+ * @param aggregatePartitionAgeLimit (default: 120s) Amount of time without receiving an utterance before we consider a transcript "aged out". This only matters in the case where a call doesn't receive a "release" event. 
+ */
 public composite TranscriptBuilder {
 	param
-		expression<boolean> $writeTranscripts : (getSubmissionTimeValue("writeTranscripts", "true") != "false") ;
+		expression<boolean> $writeTranscripts : (getSubmissionTimeValue("writeTranscripts", "true") == "true") ;
 		expression<rstring> $transcriptDirectory : getSubmissionTimeValue("transcriptDir","");
 		expression<int32> $aggregatePartitionAgeLimit : (int32) getSubmissionTimeValue("aggregatePartitionAgeLimit","120");
 	graph
 	
 		/*
-		 * Subscription to CommonCallUtterances - This microservice 
+		 * Subscription to callcenter/commonCallUtterances - This microservice 
 		 * expects to receive a "flush" tuple with the callComplete attribute
 		 * set to 1 when the call is complete. 
 		 */
@@ -129,7 +140,7 @@ public composite TranscriptBuilder {
 		() as Printer = FileSink(WriteToFileTranscripts as inPort0Alias)
 		{
 			param
-				file : WriteToFileTranscripts.commonCallId + "_{gmtime:%m%d%y}_{id}.txt";
+				file : $transcriptDirectory + WriteToFileTranscripts.commonCallId + "_{gmtime:%m%d%y}_{id}.txt";
 				suppress : WriteToFileTranscripts.commonCallId; 
 				closeMode : dynamic; 
 				format : csv; 

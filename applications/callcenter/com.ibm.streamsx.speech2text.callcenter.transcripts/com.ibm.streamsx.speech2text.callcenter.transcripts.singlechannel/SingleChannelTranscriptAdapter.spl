@@ -4,7 +4,7 @@ use com.ibm.streamsx.topology.topic::Subscribe ;
 use com.ibm.streamsx.topology.topic::Publish ;
 use com.ibm.streamsx.speech2text.callcenter.types::* ;
 
-public composite SingleChannelTranscriptBuilder
+public composite SingleChannelTranscriptAdapter
 {
 	graph
 		stream<Utterance> SubscribedUtterances = Subscribe()
