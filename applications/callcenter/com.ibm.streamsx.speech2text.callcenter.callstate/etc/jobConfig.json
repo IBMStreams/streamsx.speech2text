@@ -3,7 +3,7 @@
 		"configInstructions": {
 			"convertTagSet": [{
 				
-					"originalTagSet": ["transcript"],
+					"originalTagSet": ["callState"],
 					"targetTagSet": [""]
 				
 			}]

@@ -22,6 +22,7 @@ public composite CallJourneyAggregate(input UpdatedCallState; output CallSummari
 {
 	param
 		expression<float64> $maxCallTime : 10.0 * 60.0; 
+		expression<rstring> $journeyDirectory : ""; 
 	graph
 		stream<CallStateAndJourney>
 			WakeUpTuples = Beacon()
@@ -55,7 +56,7 @@ public composite CallJourneyAggregate(input UpdatedCallState; output CallSummari
 		() as SummaryPrinter = FileSink(CallSummaries as In)
 		{
 			param
-				file : "callSummaries.csv"; 
+				file : $journeyDirectory + "callSummaries.csv"; 
 				flush : 1u; 
 		}
 	
