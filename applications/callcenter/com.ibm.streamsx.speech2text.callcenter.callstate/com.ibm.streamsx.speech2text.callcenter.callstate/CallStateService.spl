@@ -14,6 +14,11 @@ use com.ibm.streamsx.speech2text.callcenter.types::CTIEventGeneralized;
  * for the integration of events of multiple formats. We can still maintain a record of the complete event details as part of the journey by 
  * storing the JSON representation of each event. 
  * 
+ * The key benefit of this application is that it provides a way to easily implement an ACTION -> STATE correlation. This 
+ * can be done by modifying the actionToStateMap variable to handle actions that correlate to a single state result (multiple 
+ * actions may result in the same state). In the case that a single action may result in multiple states, update the 
+ * getStateTransition function in ReadModifyUpdateStateAndJourney.spl
+ * 
  * Sample CTIEventGeneralized subscribed to on "callcenter/generalizedCtiEvents" topic: 
  * 
  * 	"123456789","CALLESTABLISHED",152519123,"\{"event":"json"\}"
