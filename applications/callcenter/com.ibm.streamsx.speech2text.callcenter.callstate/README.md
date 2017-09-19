@@ -11,7 +11,12 @@ actions may result in the same state). In the case that a single action may resu
 getStateTransition function in ReadModifyUpdateStateAndJourney.spl
 
 ## Docs
+
 The bulk of the information about this toolkit can be found by generating the SPL-DOC: 
 
 make docs
 
+## TODO
+
+Some improvements could be: 
+1. Add options to the composites on whether or not they should be writing output data to file. 

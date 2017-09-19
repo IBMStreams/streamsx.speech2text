@@ -32,6 +32,7 @@ use com.ibm.streamsx.speech2text.callcenter.types::CTIEventGeneralized;
  * @param redisCallRetentionTime (Default: 300s) This parameter controls how long calls exist in Redis since the last event received before being cleaned up. The short default time is meant for batch processing. 
  * @param maxCallTime (Default: 300s) The maximum call duration to be expected. This parameter controls how long we wait for more events after receiving an event before considering a call complete. 
  * @param journeyAggregationWindowTime (Default: 120s) The length of time we maintain partitions of all observed "Call Journeys" (both action and state) before tumbling/flushing all partitions (which contain counts and average call time for each journey). 
+ * @param callStateDirectory (Default: "") The directory we write aggregate statistics and call journeys. 
  * @param actionToStateMap This map is used to map incoming actions to their effect on the state of the call. The idea being that 1:1 action:state mappings are taken care of. Logic for more complicated state transitions must be implemented. i.e. If one action can result in multiple states. 
  */
 public composite CallStateService()
@@ -40,6 +41,7 @@ public composite CallStateService()
 		expression<float64> $redisCallRetentionTime : (float64) getSubmissionTimeValue("redisCallRetentionTime" , "300.0"); 
 		expression<float64> $maxCallTime : (float64) getSubmissionTimeValue("maxCallTime" , "300.0"); 
 		expression<float64> $journeyAggregationWindowTime : (float64) getSubmissionTimeValue("journeyAggregationWindowTime", "600");
+		expression<rstring> $callStateDirectory : getSubmissionTimeValue("callStateDirectory", "600");
 		expression<map<rstring,rstring>> $actionToStateMap :
 						{
 							"CALLESTABLISHED" : "2-PARTY_ON_LINE",
@@ -96,12 +98,14 @@ public composite CallStateService()
 		{
 			param
 				maxCallTime : $maxCallTime; 
+				journeyDirectory : $callStateDirectory; 
 		}
 		
 		() as CallJourneyStatisticSink = CallJourneyStatisticAggregators(FinalCallStateAndJourney)
 		{
 			param
 				journeyAggregationWindowTime : $journeyAggregationWindowTime; 
+				journeyStatDirectory: $callStateDirectory; 
 		}
 		
 		() as CallStatePublisher = Publish(UpdatedCallState)

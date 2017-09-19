@@ -7,3 +7,4 @@
 	mkdir -p $STREAMS_CALLCENTER_DATA/wavgen/writeToDir
 	mkdir -p $STREAMS_CALLCENTER_DATA/transcripts
 	mkdir -p $STREAMS_CALLCENTER_DATA/test/speechprocessing/pcaps/
+	mkdir -p $STREAMS_CALLCENTER_DATA/callstate/

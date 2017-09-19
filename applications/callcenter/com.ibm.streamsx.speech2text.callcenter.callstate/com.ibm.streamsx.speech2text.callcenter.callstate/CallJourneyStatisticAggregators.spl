@@ -20,6 +20,7 @@ public composite CallJourneyStatisticAggregators(input CallSummaries)
 {
 	param
 		expression<float64> $journeyAggregationWindowTime : 600.0;
+		expression<rstring> $journeyStatDirectory : ""; 
 	graph 
 		stream<rstring commonCallId, rstring callStateJourney, rstring callActionJourney, int64 callDuration>
 			FlattenedCallSummaries = Functor(CallSummaries)
@@ -80,7 +81,7 @@ public composite CallJourneyStatisticAggregators(input CallSummaries)
 		() as StatActionPrinter = FileSink(CallActionTypeCounts as In)
 		{
 			param
-				file : "callActionTypeCounts.csv"; 
+				file : $journeyStatDirectory + "callActionTypeCounts.csv"; 
 				flush : 1u; 
 		}
 }
