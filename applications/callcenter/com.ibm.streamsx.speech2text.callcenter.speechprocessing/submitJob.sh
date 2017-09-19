@@ -21,7 +21,7 @@ jobnamemap[datacentersink]=DataCenterSink
 jobnamemap[wavgen]=WavGenerator
 
 if [ "$#" -le 0 ] ; then
-	echo "Must specify one of -j|--job [packethandler,watson,datacentersink,wavgen]"
+	echo "Must specify one of -j|--job [all,packethandler,watson,datacentersink,wavgen,speechprocessing]"
 	echo "Example commands: ./submitJob.sh -j packethandler --numWatsonHosts 3 --watsonEngineCountList [1,2,3]"
 	echo " ./submitJob.sh -j watson --numWatsonHosts 3 --watsonEngineCountList [1,2,3]"
 	echo "./submitJob.sh -j datacentersink "
@@ -31,7 +31,7 @@ fi
 
 if [[ $# -lt 2 ]]
 then
-	echo "Specify one of -j|--job [packethandler,watson,datacentersink,wavgen,speechprocessing,all]"
+	echo "Specify one of -j|--job [all,packethandler,watson,datacentersink,wavgen,speechprocessing]"
     echo "Example commands:"
     echo " ./submitJob.sh -j speechprocessing --numWatsonHosts 3 --watsonEngineCountList [1,2,3] # submit packethandler,watson,and datacentersink"
     echo " ./submitJob.sh -j packethandler --numWatsonHosts 3 --watsonEngineCountList [1,2,3]"
@@ -50,7 +50,7 @@ case $key in
     shift # past argument
     ;;
     -h|--help)
-	echo "Specify one of -j|--job [packethandler,watson,datacentersink,wavgen,speechprocessing,all]"
+	echo "Specify one of -j|--job [all,packethandler,watson,datacentersink,wavgen,speechprocessing]"
     echo "Example commands:"
     echo " ./submitJob.sh -j speechprocessing --numWatsonHosts 3 --watsonEngineCountList [1,2,3] # submit packethandler,watson,and datacentersink"
     echo " ./submitJob.sh -j packethandler --numWatsonHosts 3 --watsonEngineCountList [1,2,3]"
@@ -69,7 +69,7 @@ case $key in
     shift # past argument
     ;;
     *)
-	    echo "Unknown option $key. Must specify one of -j|--job [packethandler,watson,datacentersink,wavgen]"
+	    echo "Unknown option $key. Must specify one of -j|--job [all,packethandler,watson,datacentersink,wavgen,speechprocessing]"
 	    echo "Example commands: ./submitJob.sh -j packethandler --numWatsonHosts 3 --watsonEngineCountList [1,2,3]"
 		echo " ./submitJob.sh -j watson --numWatsonHosts 3 --watsonEngineCountList [1,2,3]"
 		echo "./submitJob.sh -j datacentersink "
