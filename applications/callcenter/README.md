@@ -14,6 +14,7 @@ Requirements:
 1. atlas, atlas-devel, libcap-devel, libpcap-devel packages (use yum install)
 2. com.ibm.streams.speech2text (included as a separate download with the product) and com.ibm.streamsx.network 3.1.0+ with RTP operators, 
 available currently https://github.com/Alex-Cook4/streamsx.network/tree/rtp-dev toolkits. 
+3. Make sure com.ibm.streams.speech2text and com.ibm.streamsx.topology are in your STREAMS_SPLPATH. 
 
 This code was originally designed and contributed by John Santosuosso (@jjbosox). 
 
