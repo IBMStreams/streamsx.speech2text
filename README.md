@@ -8,3 +8,10 @@ Check out this video about how Verizon is using Speech2Text in Streams: https://
 ## This is NOT the Speech2Text Toolkit
 Using the Speech2Text toolkit with the WatsonS2T operator requires purchase of the IBM Streams product and is included
 as a separate download (no extra cost). 
+
+## Build toolkit
+
+1. Install cyrus-sasl-devel.x86_64 (this is only needed for the dps toolkit, i.e. the CallState application):
+  yum install cyrus-sasl-devel.x86_64
+2. Run ant:
+  ant
