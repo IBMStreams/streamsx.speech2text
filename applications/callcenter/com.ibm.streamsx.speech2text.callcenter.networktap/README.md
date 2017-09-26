@@ -21,6 +21,8 @@ For complete instructions on setting up your domain/instance and setting OS capa
 	```
 	$ sudo -E $STREAMS_INSTALL/bin/streamtool registerdomainhost --zkconnect <zk-connect-string>
 	```
+Note: If you are running with an embeddedzk, you must specify the localhost:21810 as your zkconnect string. 
+
 2. Set the following properties: 
 	```
 	streamtool setproperty instance.runAsUser=$USER
