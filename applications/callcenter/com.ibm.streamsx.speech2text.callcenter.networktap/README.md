@@ -21,6 +21,8 @@ For complete instructions on setting up your domain/instance and setting OS capa
 	```
 	$ sudo -E $STREAMS_INSTALL/bin/streamtool registerdomainhost --zkconnect <zk-connect-string>
 	```
+Note: If you are running with an embeddedzk, you must specify the localhost:21810 as your zkconnect string. 
+
 2. Set the following properties: 
 	```
 	streamtool setproperty instance.runAsUser=$USER
@@ -44,17 +46,13 @@ TCP Source in the PacketHandler application. (Import/Export doesn't work in stan
 
 To set the permissions on the executable you need sudo authority  
 
-First unbundle the .sab file created 
+First unbundle the .sab file created
 
-	```
 	$ spl-app-info output/com.ibm.streamsx.speech2text.callcenter.networktap.Main.sab --unbundle unbundled
-	```
 
 Then set the permission using sudo or run as root  
 
-	```
 	$ /usr/sbin/setcap 'CAP_NET_RAW+eip CAP_NET_ADMIN+eip' unbundled/output/bin/standalone
-	```
  
 =====================================
 
@@ -62,8 +60,6 @@ To run the program issue
 
 Where networkInterace :  eth2 is replaced  with the interface to be monitored. 
  
-	```
 	$ ./unbundled/output/bin/standalone  networkInterface=eth2  connHost=hostname connPort=23146
-	```
 
 
