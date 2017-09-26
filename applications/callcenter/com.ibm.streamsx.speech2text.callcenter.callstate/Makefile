@@ -8,7 +8,7 @@ SPL_CALLCENTER_TYPES = ../com.ibm.streamsx.speech2text.callcenter.types
 PRODUCT_TOOLKITS = ${STREAMS_INSTALL}/toolkits/
 DPS_TOOLKIT = ../../../.dps-toolkit/streamsx.dps-3.2.1/com.ibm.streamsx.dps/
 
-SPL_TOOLKIT_ARGS = -t $(SPL_CALLCENTER_TYPES):$(PRODUCT_TOOLKITS):$(DPS_TOOLKIT)
+SPL_TOOLKIT_ARGS = -t $(SPL_CALLCENTER_TYPES):$(DPS_TOOLKIT):$(PRODUCT_TOOLKITS)
 
 all: buildConfig
 

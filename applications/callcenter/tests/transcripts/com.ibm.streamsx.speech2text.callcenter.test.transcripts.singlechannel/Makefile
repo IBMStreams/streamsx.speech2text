@@ -6,7 +6,8 @@ SPL_MAKE_TOOLKIT = $(STREAMS_INSTALL)/bin/spl-make-toolkit
 SPL_CMD_ARGS ?= 
 SPL_MAIN_COMPOSITE = com.ibm.streamsx.speech2text.callcenter.test.transcripts.singlechannel::TestSingleChannelTranscriptBuilder
 SPL_CALLCENTER_TYPES = ../../../com.ibm.streamsx.speech2text.callcenter.types
-SPL_NETWORK_TOOLKIT ?= $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.network
+#SPL_NETWORK_TOOLKIT ?= $(STREAMS_INSTALL)/toolkits/com.ibm.streamsx.network
+SPL_NETWORK_TOOLKIT=../../../../../.network-toolkit/streamsx.network-rtp-dev/com.ibm.streamsx.network/
 CALLCENTER_SINGLECHANNELTRANSCRIPTS = ../../../com.ibm.streamsx.speech2text.callcenter.transcripts/
 
 
