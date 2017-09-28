@@ -199,11 +199,11 @@ public class SpeechFileSink extends AbstractOperator {
 		
 		String id = tuple.getString("id");
 		String channel_id = tuple.getString("channel_id");
-		int ssrc = tuple.getInt("ssrc");
-		int ts = tuple.getInt("ts");
-		int captureSeconds = tuple.getInt("captureSeconds");
-		short seq = tuple.getShort("seq");
-		int samples = tuple.getInt("samples");
+//		int ssrc = tuple.getInt("ssrc");
+//		int ts = tuple.getInt("ts");
+//		int captureSeconds = tuple.getInt("captureSeconds");
+//		short seq = tuple.getShort("seq");
+//		int samples = tuple.getInt("samples");
 		Blob speech = tuple.getBlob("speech");
 		
 		String key = id + "_" + channel_id;
