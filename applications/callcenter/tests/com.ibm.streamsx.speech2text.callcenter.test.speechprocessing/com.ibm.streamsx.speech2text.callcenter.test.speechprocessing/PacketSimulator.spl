@@ -3,7 +3,6 @@ namespace com.ibm.streamsx.speech2text.callcenter.test.speechprocessing ;
 use com.ibm.streamsx.network.ipv4::* ;
 use com.ibm.streamsx.network.ipv6::* ;
 use com.ibm.streamsx.network.source::* ;
-use com.ibm.streamsx.network.parse::* ;
 use com.ibm.streamsx.speech2text.callcenter.types::* ;
 
 composite PacketSimulator
